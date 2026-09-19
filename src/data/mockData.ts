@@ -79,7 +79,9 @@ export const INITIAL_USERS: User[] = [
     parentSignedName: 'Nguyễn Thu Hà',
     locationName: 'Nhà văn hóa Thôn 16',
     stars: 175,
-    levelTitle: 'Super Explorer'
+    levelTitle: 'Super Explorer',
+    isAdmin: true,
+    adminRoleTitle: 'Cán sự lớp kiêm Admin Học sinh'
   },
   {
     id: 'stu-2',

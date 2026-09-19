@@ -18,9 +18,13 @@ import {
   Sparkles,
   Lock,
   Unlock,
-  CheckCircle2
+  CheckCircle2,
+  CreditCard,
+  Crown
 } from 'lucide-react';
 import { User, ClassRoom } from '../types';
+import { SecureSensitiveInput } from './SecureSensitiveInput';
+import { maskLast6Digits } from '../utils/security';
 
 interface AccountCredentialsModalProps {
   isOpen: boolean;
@@ -34,12 +38,17 @@ interface AccountCredentialsModalProps {
       email: string;
       password: string;
       status: 'approved' | 'pending' | 'rejected';
+      citizenId?: string;
+      isAdmin?: boolean;
+      adminRoleTitle?: string;
     },
     parentData: {
       name: string;
       email: string;
       phone: string;
       password: string;
+      citizenId?: string;
+      parentCitizenId?: string;
     }
   ) => void;
 }
@@ -57,10 +66,14 @@ export const AccountCredentialsModal: React.FC<AccountCredentialsModalProps> = (
   const [studentPassword, setStudentPassword] = useState('starkids2026');
   const [showStudentPassword, setShowStudentPassword] = useState(false);
   const [studentStatus, setStudentStatus] = useState<'approved' | 'pending' | 'rejected'>('approved');
+  const [studentIsAdmin, setStudentIsAdmin] = useState(false);
+  const [adminRoleTitle, setAdminRoleTitle] = useState('Học sinh kiêm Quản trị viên (Admin)');
 
   // Parent Credential States
   const [parentName, setParentName] = useState('');
   const [parentPhone, setParentPhone] = useState('');
+  const [parentCitizenId, setParentCitizenId] = useState('');
+  const [studentCitizenId, setStudentCitizenId] = useState('');
   const [parentEmail, setParentEmail] = useState('');
   const [parentPassword, setParentPassword] = useState('starkids2026');
   const [showParentPassword, setShowParentPassword] = useState(false);
@@ -87,6 +100,8 @@ export const AccountCredentialsModal: React.FC<AccountCredentialsModalProps> = (
       setStudentEmail(defaultStuEmail);
       setStudentPassword(student.password || 'starkids2026');
       setStudentStatus(student.status || 'approved');
+      setStudentIsAdmin(Boolean(student.isAdmin));
+      setAdminRoleTitle(student.adminRoleTitle || 'Học sinh kiêm Quản trị viên (Admin)');
 
       // Parent details fallback
       const pName = existingParent?.name || student.parentName || `Phụ huynh em ${student.name}`;
@@ -101,6 +116,8 @@ export const AccountCredentialsModal: React.FC<AccountCredentialsModalProps> = (
 
       setParentName(pName);
       setParentPhone(pPhone);
+      setParentCitizenId(existingParent?.parentCitizenId || existingParent?.citizenId || student.parentCitizenId || '001201012345');
+      setStudentCitizenId(student.citizenId || '001201098765');
       setParentEmail(defaultParentEmail);
       setParentPassword(existingParent?.password || student.parentPassword || 'starkids2026');
 
@@ -127,6 +144,10 @@ export const AccountCredentialsModal: React.FC<AccountCredentialsModalProps> = (
   };
 
   const handleCopyZaloMessage = () => {
+    const adminNote = studentIsAdmin
+      ? `\n\n👑 ĐẶC QUYỀN HỆ THỐNG: Học sinh được cấp thêm quyền QUẢN TRỊ VIÊN (${adminRoleTitle}). Bé có thể chọn cổng "Quản trị viên (Admin)" để truy cập bảng quản lý hoặc cổng "Học sinh tiểu học" để học bài.`
+      : '';
+
     const message = `🌟 THÔNG TIN TÀI KHOẢN TRUY CẬP HỆ THỐNG STARKIDS ENGLISH 🌟
 Kính gửi Quý Phụ huynh em: ${student.name} ${student.englishName ? `(${student.englishName})` : ''} - Lớp: ${assignedClass?.name || 'Khối Tiểu Học'}
 
@@ -142,7 +163,7 @@ Ban Giám Hiệu StarKids xin gửi thông tin tài khoản đăng nhập hệ t
 - Mục đích: Bé đăng nhập làm bài tập tương tác, luyện từ vựng, nộp bài & tích lũy sao thưởng.
 - Tên đăng nhập: ${studentEmail}
 - Mật khẩu: ${studentPassword}
-- Cổng đăng nhập: Chọn vai trò "Học sinh tiểu học"
+- Cổng đăng nhập: Chọn vai trò "Học sinh tiểu học"${studentIsAdmin ? ' HOẶC "Quản trị viên (Admin)"' : ''}${adminNote}
 
 Quý Phụ huynh vui lòng bảo mật thông tin và đồng hành cùng con trong suốt khóa học.
 Trân trọng cảm ơn Quý Phụ huynh!`;
@@ -153,7 +174,8 @@ Trân trọng cảm ơn Quý Phụ huynh!`;
   };
 
   const handleCopyStudentOnly = () => {
-    const text = `Tài khoản Học sinh StarKids:\n- Bé: ${student.name} (${student.englishName || ''})\n- Đăng nhập: ${studentEmail}\n- Mật khẩu: ${studentPassword}\n- Cổng: Học sinh tiểu học`;
+    const adminInfo = studentIsAdmin ? `\n- Đặc quyền: ${adminRoleTitle} (Đăng nhập cổng Admin)` : '';
+    const text = `Tài khoản Học sinh StarKids:\n- Bé: ${student.name} (${student.englishName || ''})\n- Đăng nhập: ${studentEmail}\n- Mật khẩu: ${studentPassword}\n- Cổng: Học sinh tiểu học${studentIsAdmin ? ' / Quản trị viên (Admin)' : ''}${adminInfo}`;
     navigator.clipboard?.writeText(text);
     setCopiedStudent(true);
     setTimeout(() => setCopiedStudent(false), 2500);
@@ -192,13 +214,18 @@ Trân trọng cảm ơn Quý Phụ huynh!`;
       {
         email: studentEmail.trim().toLowerCase(),
         password: studentPassword.trim(),
-        status: studentStatus
+        status: studentStatus,
+        citizenId: studentCitizenId.trim(),
+        isAdmin: studentIsAdmin,
+        adminRoleTitle: studentIsAdmin ? adminRoleTitle.trim() : undefined
       },
       {
         name: parentName.trim() || `Phụ huynh em ${student.name}`,
         email: parentEmail.trim().toLowerCase(),
         phone: parentPhone.trim() || student.parentPhone || '0988 123 456',
-        password: parentPassword.trim()
+        password: parentPassword.trim(),
+        citizenId: parentCitizenId.trim(),
+        parentCitizenId: parentCitizenId.trim()
       }
     );
 
@@ -410,9 +437,124 @@ Trân trọng cảm ơn Quý Phụ huynh!`;
                 </div>
               </div>
 
+              {/* Student Identification / CCCD */}
+              <SecureSensitiveInput
+                label="Mã định danh / CCCD học sinh (Nếu có)"
+                value={studentCitizenId}
+                onChange={setStudentCitizenId}
+                icon="idCard"
+                placeholder="001201098765"
+                badgeLabel="Mã số học sinh 12 số"
+              />
+
+              {/* Phân Quyền Admin Cho Học Sinh */}
+              <div
+                className={`p-3.5 rounded-2xl border transition-all ${
+                  studentIsAdmin
+                    ? 'bg-gradient-to-r from-purple-50 via-amber-50/40 to-indigo-50 border-purple-300 ring-2 ring-purple-400/20 shadow-xs'
+                    : 'bg-slate-50 border-slate-200'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                        studentIsAdmin
+                          ? 'bg-purple-600 text-amber-300 shadow-xs'
+                          : 'bg-slate-200 text-slate-500'
+                      }`}
+                    >
+                      <Crown className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs font-black text-slate-800">
+                          Đặc Quyền Quản Trị Viên (Admin)
+                        </span>
+                        {studentIsAdmin && (
+                          <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black flex items-center gap-1 shadow-2xs">
+                            <Sparkles className="w-2.5 h-2.5 text-amber-600" />
+                            Đã kích hoạt
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10.5px] text-slate-500 mt-0.5">
+                        {studentIsAdmin
+                          ? 'Tài khoản được quyền truy cập Cổng Quản Trị Viên (Admin)'
+                          : 'Cấp thêm quyền quản trị hệ thống cho tài khoản học sinh này'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Toggle Switch */}
+                  <button
+                    type="button"
+                    onClick={() => setStudentIsAdmin(!studentIsAdmin)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                      studentIsAdmin ? 'bg-purple-600' : 'bg-slate-300'
+                    }`}
+                    role="switch"
+                    aria-checked={studentIsAdmin}
+                    title="Bật / Tắt quyền Admin cho học sinh"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                        studentIsAdmin ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Extended Details when Admin Privilege is ON */}
+                {studentIsAdmin && (
+                  <div className="mt-3 pt-3 border-t border-purple-200/70 space-y-2.5 animate-fadeIn">
+                    <div>
+                      <label className="block text-[11px] font-bold text-purple-950 mb-1">
+                        Chức danh hiển thị của học sinh:
+                      </label>
+                      <select
+                        value={adminRoleTitle}
+                        onChange={(e) => setAdminRoleTitle(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-purple-200 bg-white text-xs font-bold text-purple-950 focus:ring-2 focus:ring-purple-500 focus:outline-hidden"
+                      >
+                        <option value="Học sinh kiêm Quản trị viên (Admin)">👑 Học sinh kiêm Quản trị viên (Admin)</option>
+                        <option value="Trợ giảng kiêm Cán bộ lớp (Admin)">⭐ Trợ giảng kiêm Cán bộ lớp (Admin)</option>
+                        <option value="Cán sự Tiếng Anh / Admin Quản Lý">🛡️ Cán sự Tiếng Anh / Admin Quản Lý</option>
+                        <option value="Admin Quản trị viên Hệ thống">⚡ Admin Quản trị viên Hệ thống Toàn quyền</option>
+                      </select>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-purple-100/70 border border-purple-200 text-[11px] text-purple-950 space-y-1">
+                      <div className="font-bold flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-purple-700 shrink-0" />
+                        <span>Quyền hạn được kích hoạt cho học sinh:</span>
+                      </div>
+                      <ul className="list-disc list-inside space-y-0.5 text-purple-900/90 pl-1 text-[10.5px]">
+                        <li>
+                          Đăng nhập trực tiếp bằng tài khoản này tại <strong>Cổng Quản trị viên (Admin)</strong>.
+                        </li>
+                        <li>
+                          Được duyệt hồ sơ tuyển sinh, tạo lớp học, phân công giáo viên, điểm danh & cấp sao.
+                        </li>
+                        <li>
+                          Vẫn giữ nguyên quyền <strong>Học sinh</strong> để làm bài tập tương tác và thi đua sao thưởng.
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="p-2.5 rounded-xl bg-indigo-50/70 border border-indigo-100 text-[11px] text-indigo-950 flex items-center gap-2">
                 <Check className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-                <span>Bé chọn vai trò <strong>"Học sinh tiểu học"</strong> tại cổng đăng nhập để vào học.</span>
+                <span>
+                  {studentIsAdmin ? (
+                    <>Bé có thể đăng nhập tại cả 2 cổng: <strong>"Quản trị viên (Admin)"</strong> hoặc <strong>"Học sinh tiểu học"</strong>.</>
+                  ) : (
+                    <>Bé chọn vai trò <strong>"Học sinh tiểu học"</strong> tại cổng đăng nhập để vào học.</>
+                  )}
+                </span>
               </div>
             </div>
 
@@ -443,39 +585,42 @@ Trân trọng cảm ơn Quý Phụ huynh!`;
                 </button>
               </div>
 
-              {/* Parent Name & Phone */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Họ tên Phụ huynh
-                  </label>
-                  <div className="relative">
-                    <UserIcon className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                    <input
-                      type="text"
-                      value={parentName}
-                      onChange={(e) => setParentName(e.target.value)}
-                      placeholder="VD: Chị Nguyễn Thu Hà"
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-purple-500 focus:outline-hidden bg-white"
-                    />
-                  </div>
+              {/* Parent Name */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Họ tên Phụ huynh
+                </label>
+                <div className="relative">
+                  <UserIcon className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <input
+                    type="text"
+                    value={parentName}
+                    onChange={(e) => setParentName(e.target.value)}
+                    placeholder="VD: Chị Nguyễn Thu Hà"
+                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-purple-500 focus:outline-hidden bg-white"
+                  />
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Số điện thoại
-                  </label>
-                  <div className="relative">
-                    <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                    <input
-                      type="text"
-                      value={parentPhone}
-                      onChange={(e) => setParentPhone(e.target.value)}
-                      placeholder="0988 123 456"
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-purple-500 focus:outline-hidden bg-white"
-                    />
-                  </div>
-                </div>
+              {/* Parent Phone & Citizen ID (CCCD) with Eye Toggle Security */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <SecureSensitiveInput
+                  label="Số điện thoại Phụ huynh"
+                  value={parentPhone}
+                  onChange={setParentPhone}
+                  icon="phone"
+                  placeholder="0903 111 222"
+                  badgeLabel="Bảo mật SĐT"
+                />
+
+                <SecureSensitiveInput
+                  label="Căn cước công dân (CCCD)"
+                  value={parentCitizenId}
+                  onChange={setParentCitizenId}
+                  icon="idCard"
+                  placeholder="001201012345"
+                  badgeLabel="12 số định danh"
+                />
               </div>
 
               {/* Parent Email / Username */}

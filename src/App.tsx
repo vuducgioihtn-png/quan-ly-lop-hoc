@@ -106,8 +106,18 @@ export default function App() {
     saveNotifications(notifications);
   }, [notifications]);
 
+  const [isAdminModeActive, setIsAdminModeActive] = useState<boolean>(false);
+
   // Current Active User
-  const currentUser = users.find((u) => u.id === currentUserId) || users[0];
+  const rawCurrentUser = users.find((u) => u.id === currentUserId) || users[0];
+  const currentUser: User =
+    rawCurrentUser.isAdmin && isAdminModeActive
+      ? {
+          ...rawCurrentUser,
+          role: 'admin',
+          levelTitle: rawCurrentUser.adminRoleTitle || 'Học sinh kiêm Admin'
+        }
+      : rawCurrentUser;
 
   // Pending student registrations count
   const pendingCount = users.filter((u) => u.role === 'student' && u.status === 'pending').length;
@@ -147,15 +157,20 @@ export default function App() {
   const handleLogin = (user: User) => {
     setCurrentUserId(user.id);
     setIsLoggedIn(true);
-    // Reset active tab to the default tab of that role
-    if (user.role === 'admin') setAdminTab('overview');
-    else if (user.role === 'teacher') setTeacherTab('attendance');
-    else if (user.role === 'student') setStudentTab('homework');
-    else if (user.role === 'parent') setParentTab('analytics');
+    if (user.role === 'admin') {
+      setIsAdminModeActive(true);
+      setAdminTab('overview');
+    } else {
+      setIsAdminModeActive(false);
+      if (user.role === 'teacher') setTeacherTab('attendance');
+      else if (user.role === 'student') setStudentTab('homework');
+      else if (user.role === 'parent') setParentTab('analytics');
+    }
   };
 
   const handleLogout = () => {
     setIsLoggedIn(false);
+    setIsAdminModeActive(false);
   };
 
   const handleSelectUser = (user: User) => {
@@ -616,12 +631,17 @@ export default function App() {
       email: string;
       password: string;
       status: 'approved' | 'pending' | 'rejected';
+      citizenId?: string;
+      isAdmin?: boolean;
+      adminRoleTitle?: string;
     },
     parentData: {
       name: string;
       email: string;
       phone: string;
       password: string;
+      citizenId?: string;
+      parentCitizenId?: string;
     }
   ) => {
     setUsers((prev) => {
@@ -645,10 +665,14 @@ export default function App() {
             email: studentData.email,
             password: studentData.password,
             status: studentData.status,
+            citizenId: studentData.citizenId || u.citizenId,
+            isAdmin: studentData.isAdmin !== undefined ? studentData.isAdmin : u.isAdmin,
+            adminRoleTitle: studentData.adminRoleTitle !== undefined ? studentData.adminRoleTitle : u.adminRoleTitle,
             parentName: parentData.name,
             parentEmail: parentData.email,
             parentPhone: parentData.phone,
-            parentPassword: parentData.password
+            parentPassword: parentData.password,
+            parentCitizenId: parentData.parentCitizenId || parentData.citizenId || u.parentCitizenId
           };
         }
         return u;
@@ -662,6 +686,7 @@ export default function App() {
           email: parentData.email,
           phone: parentData.phone,
           password: parentData.password,
+          citizenId: parentData.citizenId || parentData.parentCitizenId || existingParent.citizenId,
           studentId: studentId
         };
       } else {
@@ -673,6 +698,7 @@ export default function App() {
           email: parentData.email,
           phone: parentData.phone,
           password: parentData.password,
+          citizenId: parentData.citizenId || parentData.parentCitizenId,
           studentId: studentId,
           status: 'approved',
           registeredAt: new Date().toISOString().split('T')[0]
@@ -689,6 +715,63 @@ export default function App() {
       targetRole: 'all',
       title: '🔐 Đã cấp quyền & cập nhật mật khẩu',
       message: `Tài khoản học sinh và phụ huynh cho bé ${studentId} đã được cập nhật thành công.`,
+      type: 'announcement',
+      createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      read: false
+    };
+    setNotifications((prev) => [notif, ...prev]);
+  };
+
+  const handleAddStudent = (
+    newStudent: User,
+    parentData: {
+      name: string;
+      phone: string;
+      email: string;
+      password: string;
+      citizenId?: string;
+    }
+  ) => {
+    const parentId = `parent-${newStudent.id}`;
+    const newParent: User = {
+      id: parentId,
+      name: parentData.name,
+      avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+      role: 'parent',
+      email: parentData.email,
+      phone: parentData.phone,
+      password: parentData.password,
+      studentId: newStudent.id,
+      status: 'approved',
+      registeredAt: new Date().toISOString().split('T')[0],
+      citizenId: parentData.citizenId,
+      parentCitizenId: parentData.citizenId
+    };
+
+    setUsers((prev) => {
+      const updated = [newStudent, newParent, ...prev];
+      saveUsers(updated);
+      return updated;
+    });
+
+    if (newStudent.classId) {
+      setClasses((prev) => {
+        const updated = prev.map((cls) => {
+          if (cls.id === newStudent.classId) {
+            return { ...cls, studentCount: (cls.studentCount || 0) + 1 };
+          }
+          return cls;
+        });
+        saveClasses(updated);
+        return updated;
+      });
+    }
+
+    const notif: AppNotification = {
+      id: `notif-newstu-${Date.now()}`,
+      targetRole: 'all',
+      title: `🎉 Chào mừng học sinh mới ${newStudent.name}`,
+      message: `Học sinh ${newStudent.name}${newStudent.isAdmin ? ' (Được cấp quyền Admin)' : ''} và phụ huynh ${parentData.name} đã được thêm vào hệ thống.`,
       type: 'announcement',
       createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
       read: false
@@ -760,9 +843,20 @@ export default function App() {
     );
   }
 
+  const handleToggleAdminView = () => {
+    if (!rawCurrentUser.isAdmin) return;
+    if (isAdminModeActive) {
+      setIsAdminModeActive(false);
+      setStudentTab('homework');
+    } else {
+      setIsAdminModeActive(true);
+      setAdminTab('overview');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col selection:bg-amber-200 selection:text-amber-900">
-      {/* Header with strictly active-role navigation (demo role switcher removed) */}
+      {/* Header with strictly active-role navigation */}
       <Header
         currentUser={currentUser}
         activeTab={getActiveTab()}
@@ -774,6 +868,7 @@ export default function App() {
         pendingCount={pendingCount}
         pendingSubmissionsCount={pendingSubmissionsCount}
         pendingHwCount={pendingHwCount}
+        onToggleAdminView={handleToggleAdminView}
       />
 
       {/* Main App Content Body */}
@@ -801,6 +896,7 @@ export default function App() {
             onAddTeacher={handleAddTeacher}
             onUpdateTeacher={handleUpdateTeacher}
             onDeleteTeacher={handleDeleteTeacher}
+            onAddStudent={handleAddStudent}
             onUpdateUserCredentials={handleUpdateUserCredentials}
           />
         )}

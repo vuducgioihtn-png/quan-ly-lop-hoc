@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { CommitmentDocumentModal } from './CommitmentDocumentModal';
+import { SecureSensitiveDisplay } from './SecureSensitiveDisplay';
 import {
   User,
   ClassRoom,
@@ -624,9 +625,11 @@ export const TeacherAdminPortal: React.FC<TeacherAdminPortalProps> = ({
                           <h4 className="font-black text-slate-800 text-sm sm:text-base">
                             {stu.englishName ? `${stu.englishName} (${stu.name})` : stu.name}
                           </h4>
-                          <p className="text-xs text-slate-500">
-                            Lớp {stu.grade} • PH: {stu.parentName || 'Chị Hà'} ({stu.parentPhone || '0988...'})
-                          </p>
+                          <div className="text-xs text-slate-500 flex items-center gap-1.5 flex-wrap">
+                            <span>Lớp {stu.grade} • PH: {stu.parentName || 'Chị Hà'}</span>
+                            <span>•</span>
+                            <SecureSensitiveDisplay value={stu.parentPhone || '0988 123 456'} type="phone" />
+                          </div>
                         </div>
                       </div>
 
@@ -1471,8 +1474,14 @@ export const TeacherAdminPortal: React.FC<TeacherAdminPortalProps> = ({
                         <div className="font-black text-slate-800 text-xs sm:text-sm">
                           {stu.englishName ? `${stu.englishName} - ${stu.name}` : stu.name}
                         </div>
-                        <div className="text-[11px] text-slate-500 font-medium">
-                          Phụ huynh: {stu.parentName || 'Chưa cập nhật'} • {stu.parentPhone || ''}
+                        <div className="text-[11px] text-slate-500 font-medium flex items-center gap-1.5 flex-wrap">
+                          <span>Phụ huynh: {stu.parentName || 'Chưa cập nhật'}</span>
+                          {stu.parentPhone && (
+                            <>
+                              <span>•</span>
+                              <SecureSensitiveDisplay value={stu.parentPhone} type="phone" />
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1545,7 +1554,10 @@ export const TeacherAdminPortal: React.FC<TeacherAdminPortalProps> = ({
                   <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-1">
                     <p className="font-bold text-slate-700">Thông tin phụ huynh:</p>
                     <p>Họ tên: <span className="font-semibold text-slate-800">{stu.parentName || 'Chưa cập nhật'}</span></p>
-                    <p>SĐT/Zalo: <span className="font-semibold text-slate-800">{stu.parentPhone || 'Chưa cập nhật'}</span></p>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span>SĐT/Zalo:</span>
+                      <SecureSensitiveDisplay value={stu.parentPhone || '0988 123 456'} type="phone" />
+                    </div>
                     <p>Lớp đăng ký: <span className="font-bold text-amber-700">{classes.find((c) => c.id === stu.classId)?.name || 'Movers 3A'}</span></p>
                   </div>
 

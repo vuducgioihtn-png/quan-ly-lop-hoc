@@ -24,6 +24,7 @@ import {
 import confetti from 'canvas-confetti';
 import { User as UserType, ClassRoom, GradeLevel } from '../types';
 import { CommitmentDocumentModal } from './CommitmentDocumentModal';
+import { SecureSensitiveInput } from './SecureSensitiveInput';
 
 interface RegisterModalProps {
   isOpen: boolean;
@@ -68,6 +69,8 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
   const [parentName, setParentName] = useState('');
   const [parentRelationship, setParentRelationship] = useState<'Ba' | 'Mẹ' | 'Người giám hộ'>('Mẹ');
   const [parentPhone, setParentPhone] = useState('');
+  const [parentCitizenId, setParentCitizenId] = useState('');
+  const [studentCitizenId, setStudentCitizenId] = useState('');
   const [parentEmail, setParentEmail] = useState('');
   const [address, setAddress] = useState('Thôn 16, địa phương');
   const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
@@ -156,8 +159,10 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
       classId,
       status: 'pending',
       registeredAt: new Date().toISOString().split('T')[0],
+      citizenId: studentCitizenId.trim() || undefined,
       parentName: parentName.trim() || 'Phụ huynh',
       parentPhone: parentPhone.trim(),
+      parentCitizenId: parentCitizenId.trim() || undefined,
       parentRelationship,
       birthDate,
       schoolName: schoolName.trim() || 'Tiểu học Thôn 16',
@@ -666,38 +671,40 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <div>
-                            <label className="block text-xs font-bold text-slate-700 mb-1">
-                              Số điện thoại liên hệ (Zalo nhận thông báo) *
-                            </label>
-                            <div className="relative">
-                              <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                              <input
-                                type="tel"
-                                required
-                                placeholder="09xx xxx xxx"
-                                value={parentPhone}
-                                onChange={(e) => setParentPhone(e.target.value)}
-                                className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-300 bg-white font-medium focus:ring-2 focus:ring-amber-500"
-                              />
-                            </div>
-                          </div>
+                          <SecureSensitiveInput
+                            label="Số điện thoại liên hệ (Zalo nhận thông báo)"
+                            value={parentPhone}
+                            onChange={setParentPhone}
+                            icon="phone"
+                            placeholder="09xx xxx xxx"
+                            required
+                            badgeLabel="Bảo mật SĐT"
+                          />
 
-                          <div>
-                            <label className="block text-xs font-bold text-slate-700 mb-1">
-                              Địa chỉ thường trú / cư trú *
-                            </label>
-                            <div className="relative">
-                              <Home className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                              <input
-                                type="text"
-                                required
-                                placeholder="Thôn 16, địa phương"
-                                value={address}
-                                onChange={(e) => setAddress(e.target.value)}
-                                className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-300 bg-white font-medium focus:ring-2 focus:ring-amber-500 font-times"
-                              />
-                            </div>
+                          <SecureSensitiveInput
+                            label="Căn cước công dân (CCCD Phụ huynh - nếu có)"
+                            value={parentCitizenId}
+                            onChange={setParentCitizenId}
+                            icon="idCard"
+                            placeholder="001201xxxxxx"
+                            badgeLabel="Định danh 12 số"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                            Địa chỉ thường trú / cư trú *
+                          </label>
+                          <div className="relative">
+                            <Home className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                            <input
+                              type="text"
+                              required
+                              placeholder="Thôn 16, địa phương"
+                              value={address}
+                              onChange={(e) => setAddress(e.target.value)}
+                              className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-300 bg-white font-medium focus:ring-2 focus:ring-amber-500 font-times"
+                            />
                           </div>
                         </div>
                       </div>

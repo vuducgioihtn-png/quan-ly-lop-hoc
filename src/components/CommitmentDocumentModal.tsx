@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { X, Printer, FileText, CheckCircle2, ShieldCheck, Info, RotateCcw, HeartHandshake } from 'lucide-react';
+import { X, Printer, FileText, CheckCircle2, ShieldCheck, Info, RotateCcw, HeartHandshake, Eye, EyeOff } from 'lucide-react';
+import { maskLast6Digits } from '../utils/security';
 
 export interface StudentDocumentData {
   fullName: string;
@@ -54,11 +55,17 @@ export const CommitmentDocumentModal: React.FC<CommitmentDocumentModalProps> = (
 }) => {
   const printRef = useRef<HTMLDivElement>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<'community_complete' | 'course_supplementary' | 'community_nvh'>(initialTemplate);
+  const [maskSensitiveData, setMaskSensitiveData] = useState<boolean>(true);
 
   if (!isOpen) return null;
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const getDisplayPhone = (phone?: string) => {
+    if (!phone) return '..............................................................';
+    return maskSensitiveData ? maskLast6Digits(phone) : phone;
   };
 
   const today = studentData.commitmentDate
@@ -162,6 +169,20 @@ export const CommitmentDocumentModal: React.FC<CommitmentDocumentModalProps> = (
                 Từ Chối
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={() => setMaskSensitiveData(!maskSensitiveData)}
+              className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer ${
+                maskSensitiveData
+                  ? 'bg-purple-100 text-purple-900 border border-purple-300'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
+              }`}
+              title="Ẩn / Hiện mã hóa 6 số cuối SĐT (xxxxxx)"
+            >
+              {maskSensitiveData ? <EyeOff className="w-4 h-4 text-purple-700" /> : <Eye className="w-4 h-4 text-slate-600" />}
+              <span>{maskSensitiveData ? 'Bảo mật SĐT: xxxxxx' : 'Hiển thị đầy đủ SĐT'}</span>
+            </button>
 
             <button
               type="button"
@@ -329,7 +350,7 @@ export const CommitmentDocumentModal: React.FC<CommitmentDocumentModalProps> = (
                     <p>
                       <strong>5. Số điện thoại liên hệ (Zalo nhận thông báo):</strong>{' '}
                       <span className="font-bold">
-                        {studentData.parentPhone || '..............................................................'}
+                        {getDisplayPhone(studentData.parentPhone)}
                       </span>
                     </p>
 
@@ -568,7 +589,7 @@ export const CommitmentDocumentModal: React.FC<CommitmentDocumentModalProps> = (
                       <p>
                         Số điện thoại liên hệ:{' '}
                         <span className="font-bold">
-                          {studentData.parentPhone || '.............................................................................................'}
+                          {getDisplayPhone(studentData.parentPhone)}
                         </span>
                       </p>
                       <p>
@@ -820,7 +841,7 @@ export const CommitmentDocumentModal: React.FC<CommitmentDocumentModalProps> = (
 
                     <p>
                       <strong>• Số điện thoại liên hệ (Zalo):</strong>{' '}
-                      <span className="font-bold">{studentData.parentPhone || '...................................................'}</span>
+                      <span className="font-bold">{getDisplayPhone(studentData.parentPhone)}</span>
                     </p>
 
                     <p>

@@ -19,6 +19,8 @@ export interface User {
   status: AccountStatus;
   registeredAt: string;
   studentId?: string; // For parent account linked to student
+  citizenId?: string; // Mã CCCD / Số định danh cá nhân học sinh (12 số)
+  parentCitizenId?: string; // Số CCCD / CMND của Phụ huynh (12 số / 9 số)
   parentName?: string;
   parentPhone?: string;
   parentEmail?: string;
@@ -43,6 +45,8 @@ export interface User {
   departmentHead?: string; // Giáo viên / Ban quản lý phụ trách bộ môn
   stars?: number;
   levelTitle?: string;
+  isAdmin?: boolean; // Học sinh được cấp đặc quyền Quản trị viên (Admin)
+  adminRoleTitle?: string; // e.g. "Học sinh kiêm Admin", "Cán bộ lớp / Trợ giảng Admin"
 }
 
 export interface ClassRoom {

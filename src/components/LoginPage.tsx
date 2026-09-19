@@ -158,8 +158,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     const phoneClean = email.trim().replace(/\D/g, '');
 
     // 1. Exact match by role & email or phone or username
+    // Also allow students with isAdmin: true to log in when selectedRole is 'admin'
     let matchedUser = allUsers.find((u) => {
-      if (u.role !== selectedRole) return false;
+      const isRoleAllowed = u.role === selectedRole || (selectedRole === 'admin' && Boolean(u.isAdmin));
+      if (!isRoleAllowed) return false;
       const uEmail = (u.email || '').toLowerCase();
       const uPhone = (u.phone || '').replace(/\D/g, '');
       const pPhone = (u.parentPhone || '').replace(/\D/g, '');
@@ -198,13 +200,28 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
     // 3. General fallback by email
     if (!matchedUser) {
-      matchedUser = allUsers.find((u) => u.email.toLowerCase() === inputClean);
+      matchedUser = allUsers.find((u) => {
+        if (u.email.toLowerCase() !== inputClean) return false;
+        if (selectedRole === 'admin') {
+          return u.role === 'admin' || Boolean(u.isAdmin);
+        }
+        return u.role === selectedRole;
+      });
     }
 
     if (matchedUser) {
       const expectedPassword = matchedUser.password || 'starkids2026';
       if (password.trim() && expectedPassword.trim() !== password.trim()) {
         setError('Mật khẩu không chính xác! Vui lòng kiểm tra lại mật khẩu do Admin cấp.');
+        return;
+      }
+      // If student is logging in under Admin role
+      if (selectedRole === 'admin' && matchedUser.role === 'student' && matchedUser.isAdmin) {
+        onLogin({
+          ...matchedUser,
+          role: 'admin',
+          levelTitle: matchedUser.adminRoleTitle || 'Học sinh kiêm Admin'
+        });
         return;
       }
       onLogin(matchedUser);
@@ -377,6 +394,60 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             </button>
           </div>
 
+          {/* Student Admin Selector if students have been granted admin privileges */}
+          {selectedRole === 'admin' && allUsers.some((u) => u.isAdmin) && (
+            <div className="mb-5 p-3.5 bg-purple-50/70 rounded-2xl border border-purple-200/80">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-[11px] font-bold text-purple-950 flex items-center gap-1.5">
+                  <Crown className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Học sinh được cấp đặc quyền Quản trị viên (Admin):</span>
+                </label>
+                <span className="text-[10px] text-purple-700 font-black">
+                  {allUsers.filter((u) => u.isAdmin).length} tài khoản
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {allUsers
+                  .filter((u) => u.isAdmin)
+                  .map((s) => {
+                    const isSelected = email.toLowerCase() === s.email.toLowerCase();
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => {
+                          setEmail(s.email);
+                          setPassword(s.password || 'starkids2026');
+                          setError(null);
+                        }}
+                        className={`p-2 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-white border-purple-500 text-purple-950 font-bold shadow-xs ring-2 ring-purple-500/20'
+                            : 'bg-white/80 border-slate-200 text-slate-700 hover:bg-white'
+                        }`}
+                      >
+                        <img
+                          src={s.avatar}
+                          alt={s.name}
+                          className="w-7 h-7 rounded-lg object-cover ring-1 ring-purple-300 shrink-0"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold truncate leading-tight flex items-center gap-1">
+                            <span>{s.name}</span>
+                            <Crown className="w-3 h-3 text-amber-500 shrink-0" />
+                          </p>
+                          <p className="text-[10px] text-purple-700 font-bold truncate">
+                            {s.adminRoleTitle || 'Học sinh kiêm Admin'}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
+
           {/* Teacher Selector if multiple teachers exist */}
           {selectedRole === 'teacher' && allTeacherUsers.length > 1 && (
             <div className="mb-5 p-3 bg-emerald-50/60 rounded-2xl border border-emerald-200/80">
@@ -452,8 +523,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         referrerPolicy="no-referrer"
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold truncate leading-tight">
-                          {s.englishName || s.name} <span className="text-[10px] text-slate-500 font-normal">({s.name})</span>
+                        <p className="text-xs font-bold truncate leading-tight flex items-center gap-1">
+                          <span>{s.englishName || s.name}</span>
+                          <span className="text-[10px] text-slate-500 font-normal">({s.name})</span>
+                          {s.isAdmin && (
+                            <span title="Học sinh có quyền Admin">
+                              <Crown className="w-3 h-3 text-amber-500 shrink-0" />
+                            </span>
+                          )}
                         </p>
                         <p className="text-[10px] text-slate-500 truncate font-mono">{s.email}</p>
                       </div>

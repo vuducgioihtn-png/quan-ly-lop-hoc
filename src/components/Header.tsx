@@ -20,7 +20,8 @@ import {
   LogOut,
   UserCheck,
   ChevronDown,
-  Check
+  Check,
+  Crown
 } from 'lucide-react';
 import { User, AppNotification } from '../types';
 
@@ -35,6 +36,7 @@ interface HeaderProps {
   pendingCount: number;
   pendingSubmissionsCount?: number;
   pendingHwCount?: number;
+  onToggleAdminView?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -47,7 +49,8 @@ export const Header: React.FC<HeaderProps> = ({
   notifications,
   pendingCount,
   pendingSubmissionsCount = 0,
-  pendingHwCount = 0
+  pendingHwCount = 0,
+  onToggleAdminView
 }) => {
   const unreadCount = notifications.filter((n) => !n.read).length;
   const [isNavDropdownOpen, setIsNavDropdownOpen] = useState(false);
@@ -84,9 +87,13 @@ export const Header: React.FC<HeaderProps> = ({
       case 'student':
         return {
           displayName: currentUser.englishName ? `${currentUser.name} (${currentUser.englishName})` : currentUser.name,
-          subtitle: `Học sinh Lớp ${currentUser.grade || 3}`,
-          roleTag: `Học Sinh Khối ${currentUser.grade || 3}`,
-          badgeColor: 'bg-amber-50 text-amber-900 border-amber-300'
+          subtitle: currentUser.isAdmin
+            ? (currentUser.adminRoleTitle || 'Cán sự lớp kiêm Admin Học sinh')
+            : `Học sinh Lớp ${currentUser.grade || 3}`,
+          roleTag: currentUser.isAdmin ? '👑 Admin Học Sinh' : `Học Sinh Khối ${currentUser.grade || 3}`,
+          badgeColor: currentUser.isAdmin
+            ? 'bg-purple-50 text-purple-900 border-purple-300 font-black'
+            : 'bg-amber-50 text-amber-900 border-amber-300'
         };
       case 'parent':
         return {
@@ -330,12 +337,36 @@ export const Header: React.FC<HeaderProps> = ({
             )}
 
             {currentUser.role === 'student' && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => onSelectTab('rewards')}
+                  className="hidden md:flex items-center gap-1.5 bg-amber-100 hover:bg-amber-200 border border-amber-300 text-amber-900 font-black text-xs px-3 py-1.5 rounded-xl shadow-2xs transition-all cursor-pointer whitespace-nowrap"
+                >
+                  <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                  <span>{currentUser.stars || 175} ⭐</span>
+                </button>
+
+                {currentUser.isAdmin && onToggleAdminView && (
+                  <button
+                    onClick={onToggleAdminView}
+                    className="flex items-center gap-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs px-3 py-1.5 rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+                    title="Chuyển sang Chế độ Quản Trị Viên (Admin)"
+                  >
+                    <Crown className="w-3.5 h-3.5 text-amber-300" />
+                    <span>Vào Quyền Admin</span>
+                  </button>
+                )}
+              </div>
+            )}
+
+            {currentUser.role === 'admin' && (currentUser.grade || currentUser.studentId || currentUser.stars) && onToggleAdminView && (
               <button
-                onClick={() => onSelectTab('rewards')}
-                className="hidden md:flex items-center gap-1.5 bg-amber-100 hover:bg-amber-200 border border-amber-300 text-amber-900 font-black text-xs px-3 py-1.5 rounded-xl shadow-2xs transition-all cursor-pointer whitespace-nowrap"
+                onClick={onToggleAdminView}
+                className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white font-black text-xs px-3 py-1.5 rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+                title="Chuyển về Giao diện Học sinh"
               >
-                <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                <span>{currentUser.stars || 175} ⭐</span>
+                <GraduationCap className="w-3.5 h-3.5 text-white" />
+                <span>Về Giao Diện Học Sinh</span>
               </button>
             )}
 

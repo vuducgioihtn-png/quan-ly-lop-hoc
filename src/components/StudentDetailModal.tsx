@@ -20,11 +20,14 @@ import {
   Printer,
   Home,
   ShieldCheck,
-  KeyRound
+  KeyRound,
+  CreditCard,
+  Crown
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { User as UserType, ClassRoom, AttendanceRecord, HomeworkSubmission } from '../types';
 import { CommitmentDocumentModal } from './CommitmentDocumentModal';
+import { SecureSensitiveDisplay } from './SecureSensitiveDisplay';
 
 interface StudentDetailModalProps {
   isOpen: boolean;
@@ -164,6 +167,12 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
               {student.englishName && (
                 <span className="px-2.5 py-0.5 rounded-lg bg-indigo-100 text-indigo-800 font-black text-xs">
                   {student.englishName}
+                </span>
+              )}
+              {student.isAdmin && (
+                <span className="px-2.5 py-0.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black text-xs flex items-center gap-1 shadow-xs">
+                  <Crown className="w-3 h-3 text-amber-300" />
+                  <span>{student.adminRoleTitle || 'Quyền Admin'}</span>
                 </span>
               )}
               <span
@@ -385,8 +394,22 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <span>
-                  Số điện thoại: <strong className="text-slate-800">{student.parentPhone || student.phone || '0988 123 456'}</strong>
+                <span className="flex items-center gap-1.5 flex-wrap">
+                  Số điện thoại:
+                  <SecureSensitiveDisplay
+                    value={student.parentPhone || student.phone || '0988 123 456'}
+                    type="phone"
+                  />
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span className="flex items-center gap-1.5 flex-wrap">
+                  CCCD / CMND:
+                  <SecureSensitiveDisplay
+                    value={student.parentCitizenId || student.citizenId || '001201012345'}
+                    type="citizenId"
+                  />
                 </span>
               </div>
               <div className="flex items-center gap-2">

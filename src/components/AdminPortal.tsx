@@ -34,7 +34,8 @@ import {
   KeyRound,
   Copy,
   FileText,
-  RotateCcw
+  RotateCcw,
+  Crown
 } from 'lucide-react';
 import { User, ClassRoom, AttendanceRecord, AppNotification, HomeworkSubmission } from '../types';
 import { TeacherModal } from './TeacherModal';
@@ -43,6 +44,8 @@ import { CreateClassModal } from './CreateClassModal';
 import { ClassRosterModal } from './ClassRosterModal';
 import { StudentDetailModal } from './StudentDetailModal';
 import { AccountCredentialsModal } from './AccountCredentialsModal';
+import { CreateStudentAccountModal } from './CreateStudentAccountModal';
+import { SecureSensitiveDisplay } from './SecureSensitiveDisplay';
 import { CommitmentDocumentModal } from './CommitmentDocumentModal';
 
 interface AdminPortalProps {
@@ -63,18 +66,33 @@ interface AdminPortalProps {
   onAddTeacher?: (newTeacher: User, assignedClassIds: string[]) => void;
   onUpdateTeacher?: (updatedTeacher: User, assignedClassIds: string[]) => void;
   onDeleteTeacher?: (teacherId: string) => void;
+  onAddStudent?: (
+    newStudent: User,
+    parentData: {
+      name: string;
+      phone: string;
+      email: string;
+      password: string;
+      citizenId?: string;
+    }
+  ) => void;
   onUpdateUserCredentials?: (
     studentId: string,
     studentData: {
       email: string;
       password: string;
       status: 'approved' | 'pending' | 'rejected';
+      citizenId?: string;
+      isAdmin?: boolean;
+      adminRoleTitle?: string;
     },
     parentData: {
       name: string;
       email: string;
       phone: string;
       password: string;
+      citizenId?: string;
+      parentCitizenId?: string;
     }
   ) => void;
   onBroadcastNotification: (
@@ -105,6 +123,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   onAddTeacher,
   onUpdateTeacher,
   onDeleteTeacher,
+  onAddStudent,
   onUpdateUserCredentials,
   onBroadcastNotification,
   onOpenCreateClassModal,
@@ -133,6 +152,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [classSearch, setClassSearch] = useState('');
 
   // Student Directory States
+  const [isCreateStudentModalOpen, setIsCreateStudentModalOpen] = useState(false);
   const [selectedStudentForDetail, setSelectedStudentForDetail] = useState<User | null>(null);
   const [selectedStudentForCredentials, setSelectedStudentForCredentials] = useState<User | null>(null);
   const [isCredentialsModalOpen, setIsCredentialsModalOpen] = useState(false);
@@ -1025,7 +1045,9 @@ Học sinh: ${student.name} ${student.englishName ? `(${student.englishName})` :
                         <div className="text-xs text-slate-600 font-medium flex items-center gap-3 flex-wrap">
                           <span>Phụ huynh: <strong className="text-slate-800">{stu.parentName || 'Chưa cập nhật'}</strong></span>
                           <span>•</span>
-                          <span>SĐT: <strong className="text-slate-800">{stu.parentPhone || stu.phone || '0988 123 456'}</strong></span>
+                          <span className="inline-flex items-center gap-1.5">
+                            SĐT: <SecureSensitiveDisplay value={stu.parentPhone || stu.phone || '0988 123 456'} type="phone" />
+                          </span>
                           <span>•</span>
                           <span>Ngày nộp đơn: {stu.registeredAt}</span>
                         </div>
@@ -1385,7 +1407,15 @@ Học sinh: ${student.name} ${student.englishName ? `(${student.englishName})` :
               </p>
             </div>
 
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <button
+                onClick={() => setIsCreateStudentModalOpen(true)}
+                className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-black text-xs flex items-center gap-1.5 shadow-xs cursor-pointer transition-all active:scale-95"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Tạo Học Sinh & Cấp Quyền</span>
+              </button>
+
               <button
                 onClick={() => {
                   setEditingClass(null);
@@ -1638,6 +1668,15 @@ Học sinh: ${student.name} ${student.englishName ? `(${student.englishName})` :
                                     {student.englishName}
                                   </span>
                                 )}
+                                {student.isAdmin && (
+                                  <span
+                                    title={student.adminRoleTitle || 'Đặc quyền Quản trị viên'}
+                                    className="px-2 py-0.5 rounded-md bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-extrabold text-[10px] flex items-center gap-1 shadow-2xs"
+                                  >
+                                    <Crown className="w-2.5 h-2.5 text-amber-300" />
+                                    <span>Admin</span>
+                                  </span>
+                                )}
                               </div>
                               <p className="text-[11px] text-slate-400 font-mono mt-0.5">
                                 #{student.id.toUpperCase()}
@@ -1684,13 +1723,7 @@ Học sinh: ${student.name} ${student.englishName ? `(${student.englishName})` :
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="text-slate-400">Số điện thoại:</span>
-                            <a
-                              href={`tel:${student.parentPhone || student.phone}`}
-                              className="font-bold text-indigo-600 hover:underline flex items-center gap-1"
-                            >
-                              <Phone className="w-3 h-3" />
-                              <span>{student.parentPhone || student.phone || '090-xxx-xxxx'}</span>
-                            </a>
+                            <SecureSensitiveDisplay value={student.parentPhone || student.phone || '0988 123 456'} type="phone" />
                           </div>
                         </div>
 
@@ -1714,9 +1747,9 @@ Học sinh: ${student.name} ${student.englishName ? `(${student.englishName})` :
                               <span className="font-bold text-slate-700">Bé: </span>
                               <span className="font-mono text-slate-800">{student.email.split('@')[0]}</span>
                             </div>
-                            <div className="truncate text-slate-600">
+                            <div className="truncate text-slate-600 flex items-center gap-1">
                               <span className="font-bold text-slate-700">PH: </span>
-                              <span className="font-mono text-slate-800">{student.parentPhone || student.phone || '0988...'}</span>
+                              <SecureSensitiveDisplay value={student.parentPhone || student.phone || '0988 123 456'} type="phone" />
                             </div>
                           </div>
                           <div className="text-[10.5px] text-slate-500 flex items-center justify-between pt-1 border-t border-indigo-100 font-mono">
@@ -2011,10 +2044,14 @@ Học sinh: ${student.name} ${student.englishName ? `(${student.englishName})` :
                       email: studentData.email,
                       password: studentData.password,
                       status: studentData.status,
+                      citizenId: studentData.citizenId || prev.citizenId,
+                      isAdmin: studentData.isAdmin,
+                      adminRoleTitle: studentData.adminRoleTitle,
                       parentName: parentData.name,
                       parentEmail: parentData.email,
                       parentPhone: parentData.phone,
-                      parentPassword: parentData.password
+                      parentPassword: parentData.password,
+                      parentCitizenId: parentData.parentCitizenId || parentData.citizenId || prev.parentCitizenId
                     }
                   : prev
               );
@@ -2022,6 +2059,21 @@ Học sinh: ${student.name} ${student.englishName ? `(${student.englishName})` :
           }}
         />
       )}
+
+      {/* MODAL: Tạo Mới Tài Khoản Học Sinh & Cấp Quyền Đăng Nhập */}
+      <CreateStudentAccountModal
+        isOpen={isCreateStudentModalOpen}
+        onClose={() => setIsCreateStudentModalOpen(false)}
+        classes={classes}
+        onAddStudent={(newStudent, parentData) => {
+          onAddStudent?.(newStudent, parentData);
+          showToast(
+            `🎉 Đã tạo thành công tài khoản cho bé ${newStudent.name}${
+              newStudent.isAdmin ? ' (Kèm đặc quyền Quản trị viên)' : ''
+            }!`
+          );
+        }}
+      />
 
       {/* MODAL: Xác Nhận Xóa Lớp Học */}
       {classToDelete && (
