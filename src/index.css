@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Nunito', system-ui, -apple-system, sans-serif;
+    color: #1e293b;
+    background-color: #f8fafc;
+  }
+
+  h1, h2, h3, .font-heading {
+    font-family: 'Comfortaa', 'Nunito', cursive, sans-serif;
+  }
+}
+
+/* Nghị định 30/2020/NĐ-CP - Standard Times New Roman font */
+.font-times {
+  font-family: 'Times New Roman', Times, 'Liberation Serif', serif;
+}
+
+/* In ấn theo Nghị định 30/2020/NĐ-CP (Khổ A4 đứng, Lề: Trên 20mm, Dưới 20mm, Trái 30mm, Phải 15mm) */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 20mm 15mm 20mm 30mm;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .print-document-container,
+  .print-document-container * {
+    visibility: visible;
+  }
+
+  .print-document-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+

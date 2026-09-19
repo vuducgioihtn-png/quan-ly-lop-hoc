@@ -1,0 +1,8 @@
+{
+  "name": "StarKids English - Quản Lý Lớp Học & Tiến Độ",
+  "description": "Ứng dụng học tiếng Anh cho học sinh lớp 1-5: điểm danh, giao bài tập, chấm điểm trực tuyến, bảng xếp hạng thi đua và sổ liên lạc phụ huynh.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
