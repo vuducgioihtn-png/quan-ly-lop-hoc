@@ -756,6 +756,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
       <CommitmentDocumentModal
         isOpen={showCommitmentDoc}
         onClose={() => setShowCommitmentDoc(false)}
+        status={linkedStudent.status}
         studentData={{
           fullName: linkedStudent.name,
           englishName: linkedStudent.englishName,
@@ -771,7 +772,19 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
           commitmentDate: linkedStudent.commitmentDate || linkedStudent.registeredAt,
           studentSignedName: linkedStudent.studentSignedName || linkedStudent.name,
           parentSignedName: linkedStudent.parentSignedName || parentUser.name,
-          locationName: linkedStudent.locationName || 'Nhà văn hóa Thôn 16'
+          locationName: linkedStudent.locationName || 'Nhà văn hóa Thôn 16',
+          policyCategory: linkedStudent.policyCategory || 'standard',
+          operatingFundAmount: linkedStudent.operatingFundAmount || '50.000',
+          sessionsCount: linkedStudent.sessionsCount || '16',
+          academicAbility: linkedStudent.academicAbility || 'basic',
+          subjectName: linkedStudent.subjectName || 'Tiếng Anh tiểu học & Kỹ năng giao tiếp',
+          courseProgram:
+            linkedStudent.courseProgram ||
+            (classInfo ? `Lớp ${classInfo.name}` : `Chương trình Bổ trợ & Nâng cao Tiếng Anh Lớp ${linkedStudent.grade || 3}`),
+          learningGoal: linkedStudent.learningGoal || 'Củng cố nền tảng phát âm, tự tin giao tiếp và đạt điểm tốt môn Tiếng Anh',
+          preferredSchedule:
+            linkedStudent.preferredSchedule || classInfo?.scheduleDescription || 'Ca học các ngày trong tuần (17h30 - 19h00)',
+          departmentHead: linkedStudent.departmentHead || 'Tiếng Anh (CLB StarKids - Nhà văn hóa Thôn 16)'
         }}
       />
     </div>

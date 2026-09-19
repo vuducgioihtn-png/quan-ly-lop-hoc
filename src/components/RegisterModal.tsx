@@ -18,7 +18,8 @@ import {
   CheckSquare,
   Square,
   Info,
-  ShieldCheck
+  ShieldCheck,
+  HeartHandshake
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { User as UserType, ClassRoom, GradeLevel } from '../types';
@@ -70,6 +71,17 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
   const [parentEmail, setParentEmail] = useState('');
   const [address, setAddress] = useState('Thôn 16, địa phương');
   const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
+
+  // Section: Academic & course preferences (theo mẫu Đơn Đăng Ký Khóa Học / Ôn Tập Bổ Trợ)
+  const [academicAbility, setAcademicAbility] = useState<'basic' | 'advanced' | 'gifted'>('basic');
+  const [subjectName, setSubjectName] = useState('Tiếng Anh tiểu học & Giao tiếp');
+  const [learningGoal, setLearningGoal] = useState('Củng cố nền tảng phát âm, tự tin giao tiếp và đạt điểm tốt');
+  const [preferredSchedule, setPreferredSchedule] = useState('Ca học chiều tối các ngày trong tuần (17h30 - 19h00)');
+
+  // Section: Policy category & Operating Fund (Theo mẫu Đơn & Cam kết hoàn chỉnh Nhà văn hóa)
+  const [policyCategory, setPolicyCategory] = useState<'policy_revolution' | 'poor_household' | 'standard'>('standard');
+  const [operatingFundAmount, setOperatingFundAmount] = useState('50.000');
+  const [sessionsCount, setSessionsCount] = useState('16');
 
   // Section III: Commitments
   const [parentAccepted, setParentAccepted] = useState(false);
@@ -155,6 +167,15 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
       studentSignedName: studentSignedName.trim() || fullName.trim(),
       parentSignedName: parentSignedName.trim() || parentName.trim(),
       locationName: 'Nhà văn hóa Thôn 16',
+      policyCategory,
+      operatingFundAmount,
+      sessionsCount,
+      academicAbility,
+      subjectName,
+      courseProgram: chosenClass ? `Khóa học: ${chosenClass.name}` : `Khóa học Bổ trợ & Ôn tập kiến thức Tiếng Anh Lớp ${grade}`,
+      learningGoal: learningGoal.trim() || 'Củng cố nền tảng phát âm, tự tin giao tiếp và đạt kết quả tốt',
+      preferredSchedule: preferredSchedule.trim() || (chosenClass?.scheduleDescription || 'Ca học chiều tối (17h30 - 19h00)'),
+      departmentHead: 'Tiếng Anh (CLB StarKids - Nhà văn hóa Thôn 16)',
       stars: 20, // Initial welcome bonus stars
       levelTitle: 'Bé Khởi Động'
     };
@@ -243,7 +264,7 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                       : 'text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200'
                   }`}
                 >
-                  <span>1. Phần I: Thông tin HS & Phụ huynh</span>
+                  <span>1. Phần I: Thông tin HS & Gia đình</span>
                 </button>
                 <button
                   type="button"
@@ -254,7 +275,7 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                       : 'text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200'
                   }`}
                 >
-                  <span>2. Phần II: Điều khoản Nhà văn hóa</span>
+                  <span>2. Phần II: Quỹ vận hành & Miễn 100% chính sách</span>
                 </button>
                 <button
                   type="button"
@@ -265,7 +286,7 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                       : 'text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200'
                   }`}
                 >
-                  <span>3. Phần III: Lời cam đoan & Chữ ký</span>
+                  <span>3. Phần III: Tài sản NVH & Ký cam kết</span>
                 </button>
                 <button
                   type="button"
@@ -545,6 +566,67 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                         </div>
                       </div>
 
+                      {/* Academic Ability & Learning Goal (Mẫu Đơn Đăng Ký Khóa Học / Ôn Tập Bổ Trợ) */}
+                      <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-xl space-y-3 font-sans">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                            7. Học lực hiện tại đối với môn đăng ký (Tiếng Anh) *
+                          </label>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            {[
+                              { id: 'basic', label: 'Cần củng cố căn bản' },
+                              { id: 'advanced', label: 'Khá / Nâng cao' },
+                              { id: 'gifted', label: 'Luyện thi HSG / Chuyển cấp' }
+                            ].map((opt) => (
+                              <button
+                                key={opt.id}
+                                type="button"
+                                onClick={() => setAcademicAbility(opt.id as any)}
+                                className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all text-left flex items-center gap-2 cursor-pointer ${
+                                  academicAbility === opt.id
+                                    ? 'bg-white border-amber-500 text-amber-950 shadow-xs ring-2 ring-amber-400/40'
+                                    : 'bg-white/80 border-slate-200 text-slate-700 hover:bg-white'
+                                }`}
+                              >
+                                <span className={`w-4 h-4 rounded border flex items-center justify-center text-[10px] font-black ${
+                                  academicAbility === opt.id ? 'border-amber-600 bg-amber-500 text-white' : 'border-slate-300 bg-white'
+                                }`}>
+                                  {academicAbility === opt.id ? '✓' : ''}
+                                </span>
+                                <span>{opt.label}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-bold text-slate-800 mb-1">
+                              Mục tiêu học tập của học sinh
+                            </label>
+                            <input
+                              type="text"
+                              value={learningGoal}
+                              onChange={(e) => setLearningGoal(e.target.value)}
+                              placeholder="VD: Nắm chắc ngữ pháp cơ bản, tự tin giao tiếp"
+                              className="w-full px-3 py-1.5 text-xs sm:text-sm rounded-xl border border-slate-300 bg-white font-medium focus:ring-2 focus:ring-amber-500 font-times"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-slate-800 mb-1">
+                              Khung thời gian / Ca học mong muốn
+                            </label>
+                            <input
+                              type="text"
+                              value={preferredSchedule}
+                              onChange={(e) => setPreferredSchedule(e.target.value)}
+                              placeholder="VD: Ca chiều tối Thứ 2, 4 (17h30 - 19h00)"
+                              className="w-full px-3 py-1.5 text-xs sm:text-sm rounded-xl border border-slate-300 bg-white font-medium focus:ring-2 focus:ring-amber-500 font-times"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
                       {/* Parent Info */}
                       <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 font-sans">
                         <span className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
@@ -635,72 +717,116 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                     </section>
                   )}
 
-                  {/* MỤC II: NỘI DUNG VÀ CÁC ĐIỀU KHOẢN CAM KẾT THAM GIA */}
+                  {/* MỤC II: MỤC ĐÍCH & QUỸ VẬN HÀNH (CHÍNH SÁCH MIỄN 100%) */}
                   {(activeTab === 'terms' || activeTab === 'full') && (
                     <section className="space-y-4 animate-in fade-in">
-                      <div className="border-b border-black/30 pb-1">
+                      <div className="border-b border-black/30 pb-1 flex items-center justify-between gap-2 flex-wrap">
                         <h3 className="font-bold text-[13.5pt] uppercase text-black">
-                          II. NỘI DUNG VÀ CÁC ĐIỀU KHOẢN CAM KẾT THAM GIA LỚP HỌC
+                          II. MỤC ĐÍCH & QUỸ VẬN HÀNH (CHÍNH SÁCH MIỄN ĐÓNG GÓP 100%)
                         </h3>
+                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800 text-[11px] font-bold">
+                          Học phí 0đ • Tri ân chính sách
+                        </span>
                       </div>
 
-                      <p className="indent-[1cm] text-[13pt] text-black leading-relaxed">
-                        Lớp học được tổ chức hoàn toàn <strong>MIỄN PHÍ</strong> nhờ sự hỗ trợ và tạo điều kiện của chính quyền địa phương cùng Ban Quản lý Nhà văn hóa Thôn 16 cho mượn cơ sở phòng ốc. Để đảm bảo nề nếp học tập và bảo vệ tài sản công cộng của nhân dân, gia đình và học sinh xin cam đoan thực hiện nghiêm chỉnh 05 điều khoản sau:
-                      </p>
-
-                      <div className="space-y-3.5 text-[13pt] text-black leading-relaxed">
-                        <div className="p-3.5 bg-amber-50/60 border border-amber-300/80 rounded-xl space-y-1">
-                          <p className="indent-[0.8cm]">
-                            <strong>Điều 1. Bảo quản cơ sở vật chất và tài sản công tại Nhà văn hóa:</strong>
+                      {/* II. Mục đích và nội dung lớp học */}
+                      <div className="p-3.5 bg-amber-50/70 border border-amber-300/80 rounded-xl space-y-2 text-[13pt] text-black">
+                        <p className="font-bold text-[13pt] text-amber-950">
+                          1. Mục đích và nội dung lớp học:
+                        </p>
+                        <div className="pl-4 space-y-1.5 text-justify">
+                          <p>
+                            • Lớp học được tổ chức hoàn toàn <strong>MIỄN PHÍ VỀ MẶT GIẢNG DẠY</strong> (0 đồng học phí) nhằm tạo môi trường rèn luyện tiếng Anh, phát triển sự tự tin và xây dựng nền tảng học tập cho các bạn nhỏ tại địa phương.
                           </p>
-                          <ul className="list-disc pl-9 space-y-1 text-[12.5pt]">
-                            <li>
-                              Học sinh có trách nhiệm giữ gìn bàn, ghế, quạt, rèm cửa, phông bạt sân khấu và bảng viết; tuyệt đối không vẽ bậy, viết, cào xước hoặc dán kẹo cao su lên tường và tài sản công.
-                            </li>
-                            <li>
-                              Nghiêm cấm tự ý bật/tắt hoặc can thiệp vào tủ âm thanh, micro, máy chiếu, bảng điều khiển ánh sáng của Nhà văn hóa.
-                            </li>
-                            <li>
-                              Nếu học sinh cố ý nghịch ngợm làm hư hỏng, vỡ, gãy hoặc mất mát tài sản của Nhà văn hóa, phụ huynh cam kết chịu hoàn toàn trách nhiệm sửa chữa hoặc bồi thường thỏa đáng theo đúng giá trị thực tế.
-                            </li>
-                          </ul>
+                          <p>
+                            • Lớp học được triển khai tại Nhà văn hóa Thôn 16 theo từng giai đoạn ngắn hạn (Giai đoạn khởi động dự kiến gồm: <strong>{sessionsCount} buổi</strong>).
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* III. Quy định về quỹ vận hành & chính sách miễn đóng góp */}
+                      <div className="p-4 bg-slate-50 border border-slate-300 rounded-xl space-y-3 text-[13pt] text-black">
+                        <div>
+                          <p className="font-bold text-[13pt] text-slate-900">
+                            2. Quỹ vận hành và sinh hoạt lớp:
+                          </p>
+                          <p className="indent-[0.8cm] text-justify text-slate-700 text-xs sm:text-sm mt-1">
+                            Để lớp học diễn ra nề nếp, đảm bảo điều kiện cơ sở vật chất và duy trì lâu dài tại Nhà văn hóa, phụ huynh và học sinh đồng thuận mức đóng góp tự nguyện: <strong>{operatingFundAmount} VNĐ / học sinh</strong> (cho toàn bộ giai đoạn học).
+                          </p>
+                          <div className="pl-4 text-xs sm:text-sm text-slate-700 space-y-0.5 mt-1.5">
+                            <p>• Chi trả tiền điện chiếu sáng, quạt/điều hòa, nước uống phát sinh thực tế tại Nhà văn hóa.</p>
+                            <p>• In ấn phiếu bài tập, giáo trình/tài liệu học tập cho các con.</p>
+                            <p>• Mua sắm đồ dùng chung, quà tặng sticker và phần thưởng động viên các bạn nhỏ cuối khóa.</p>
+                            <p className="italic text-slate-500">• Quỹ được đại diện phụ huynh theo dõi, quản lý thu - chi và công khai minh bạch.</p>
+                          </div>
                         </div>
 
-                        <div className="p-3.5 bg-emerald-50/60 border border-emerald-300/80 rounded-xl space-y-1">
-                          <p className="indent-[0.8cm]">
-                            <strong>Điều 2. Giữ gìn vệ sinh môi trường và nếp sống văn minh:</strong>
+                        {/* Chính sách miễn đóng góp 100% */}
+                        <div className="pt-2 border-t border-slate-200">
+                          <div className="flex items-center gap-2 mb-1">
+                            <HeartHandshake className="w-4 h-4 text-rose-600 shrink-0" />
+                            <p className="font-bold text-xs sm:text-sm text-rose-950 uppercase">
+                              Chính sách miễn đóng góp 100% (Ưu tiên cộng đồng & Tri ân)
+                            </p>
+                          </div>
+                          <p className="text-xs sm:text-sm text-slate-700 leading-relaxed text-justify mb-2.5">
+                            Với tinh thần tương thân tương ái và truyền thống “Uống nước nhớ nguồn”, lớp học <strong>miễn hoàn toàn 100% khoản Quỹ vận hành và sinh hoạt</strong> đối với con em gia đình người có công với cách mạng, gia đình chính sách (thương binh, bệnh binh, thân nhân liệt sĩ), học sinh thuộc hộ nghèo, cận nghèo hoặc có hoàn cảnh đặc biệt khó khăn.
                           </p>
-                          <ul className="list-disc pl-9 space-y-1 text-[12.5pt]">
-                            <li>
-                              Học sinh tự giác thu gom rác, gọt bút chì, vỏ bánh kẹo bỏ đúng thùng rác trước khi rời lớp. Không mang đồ ăn vặt, kẹo cao su, nước ngọt có ga vào khuôn viên phòng học.
-                            </li>
-                            <li>
-                              Không chạy nhảy xô đẩy trên bục sân khấu, ban công hay cầu thang nhằm bảo đảm an toàn thân thể và giữ trật tự chung cho khu dân cư.
-                            </li>
-                            <li>
-                              Sử dụng nhà vệ sinh công cộng văn minh, giữ gìn sạch sẽ, tắt điện và khóa vòi nước sau khi dùng.
-                            </li>
-                          </ul>
-                        </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-[12pt] font-sans">
-                          <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                            <strong className="block text-slate-900 font-bold mb-1">Điều 3. Giờ giấc & Đưa đón</strong>
-                            <p className="text-slate-700 leading-normal text-xs">
-                              Phụ huynh có mặt đưa đón con đúng giờ tại cổng/sảnh Nhà văn hóa. Học sinh đến trước giờ học 5 - 10 phút để ổn định vị trí.
-                            </p>
-                          </div>
-                          <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                            <strong className="block text-slate-900 font-bold mb-1">Điều 4. Chuyên cần học tập</strong>
-                            <p className="text-slate-700 leading-normal text-xs">
-                              Đi học đầy đủ. Nghỉ không phép 2 buổi hoặc nghỉ có phép quá 3 buổi sẽ dừng học để nhường suất học cho bạn khác trong thôn.
-                            </p>
-                          </div>
-                          <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                            <strong className="block text-slate-900 font-bold mb-1">Điều 5. Hình ảnh tư liệu</strong>
-                            <p className="text-slate-700 leading-normal text-xs">
-                              Đồng ý cho giáo viên chụp ảnh, ghi hình hoạt động tích cực để báo cáo tình hình học tập và lưu trữ phong trào phi lợi nhuận.
-                            </p>
+                          <div className="space-y-2 font-sans">
+                            <label className="block text-xs font-bold text-slate-800">
+                              Vui lòng chọn diện đăng ký của gia đình (được giữ kín & tế nhị):
+                            </label>
+
+                            {[
+                              {
+                                id: 'policy_revolution',
+                                label: 'Gia đình thuộc diện có công với cách mạng / gia đình chính sách',
+                                tag: 'Miễn 100% Quỹ vận hành',
+                                desc: 'Thương binh, bệnh binh, thân nhân liệt sĩ, người có công cách mạng'
+                              },
+                              {
+                                id: 'poor_household',
+                                label: 'Gia đình thuộc diện hộ nghèo / cận nghèo / hoàn cảnh khó khăn',
+                                tag: 'Miễn 100% Quỹ vận hành',
+                                desc: 'Hộ nghèo, cận nghèo hoặc các em có hoàn cảnh gia đình đặc biệt khó khăn'
+                              },
+                              {
+                                id: 'standard',
+                                label: 'Gia đình tham gia đóng góp quỹ vận hành theo quy định chung',
+                                tag: 'Đóng góp 50.000đ / khóa',
+                                desc: 'Chung tay duy trì điện nước, tài liệu in ấn và phần thưởng cuối khóa'
+                              }
+                            ].map((opt) => (
+                              <div
+                                key={opt.id}
+                                onClick={() => setPolicyCategory(opt.id as any)}
+                                className={`p-3 rounded-xl border transition-all cursor-pointer flex items-start gap-3 ${
+                                  policyCategory === opt.id
+                                    ? 'bg-amber-500/15 border-amber-500 shadow-xs ring-2 ring-amber-400/40 text-amber-950'
+                                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100/80'
+                                }`}
+                              >
+                                <span className={`w-4 h-4 rounded border mt-0.5 flex items-center justify-center text-[10px] font-black shrink-0 ${
+                                  policyCategory === opt.id ? 'border-amber-600 bg-amber-500 text-white' : 'border-slate-400 bg-white'
+                                }`}>
+                                  {policyCategory === opt.id ? '✓' : ''}
+                                </span>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-xs font-bold text-slate-900">{opt.label}</span>
+                                    <span className={`px-2 py-0.2 rounded-full text-[10px] font-bold ${
+                                      opt.id !== 'standard'
+                                        ? 'bg-rose-100 text-rose-800 border border-rose-300'
+                                        : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                    }`}>
+                                      {opt.tag}
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] text-slate-500 mt-0.5">{opt.desc}</p>
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       </div>
@@ -719,7 +845,7 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                             onClick={handleNextToCommit}
                             className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-sm flex items-center gap-2 shadow-md cursor-pointer transition-all"
                           >
-                            <span>Tôi đã hiểu: Sang Phần III - Ký cam kết</span>
+                            <span>Tiếp tục: Phần III - Tài sản NVH & Cam kết</span>
                             <ArrowRight className="w-4 h-4" />
                           </button>
                         </div>
@@ -727,18 +853,53 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                     </section>
                   )}
 
-                  {/* MỤC III: LỜI CAM ĐOAN VÀ TRÁCH NHIỆM CỦA GIA ĐÌNH */}
+                  {/* MỤC III: BẢO QUẢN TÀI SẢN NHÀ VĂN HÓA VÀ NỘI QUY LỚP HỌC */}
                   {(activeTab === 'commit' || activeTab === 'full') && (
                     <section className="space-y-4 animate-in fade-in">
                       <div className="border-b border-black/30 pb-1">
                         <h3 className="font-bold text-[13.5pt] uppercase text-black">
-                          III. LỜI CAM ĐOAN VÀ TRÁCH NHIỆM CỦA GIA ĐÌNH
+                          III. BẢO QUẢN TÀI SẢN NHÀ VĂN HÓA VÀ NỘI QUY LỚP HỌC
                         </h3>
                       </div>
 
-                      <p className="indent-[1cm] text-[13pt] text-black leading-relaxed">
-                        Tôi xin cam đoan toàn bộ thông tin kê khai trên là hoàn toàn chính xác. Gia đình chúng tôi và học sinh đã đọc kỹ, thấu hiểu và hoàn toàn tự nguyện nhất trí với toàn bộ các điều khoản nêu trong Bản cam kết này; cam kết bảo vệ tài sản công cộng tại <strong>Nhà văn hóa Thôn 16</strong>, đôn đốc con học tập nghiêm túc và chịu mọi trách nhiệm bồi hoàn nếu xảy ra vi phạm.
-                      </p>
+                      <div className="space-y-3 text-[13pt] text-black leading-relaxed text-justify">
+                        <div className="p-3.5 bg-amber-50/70 border border-amber-300/80 rounded-xl space-y-1">
+                          <p>
+                            <strong>1. Bảo vệ tài sản công:</strong> Tuyệt đối không vẽ bậy, cào xước lên bàn ghế, tường, rèm sân khấu. Không tự ý bật/tắt hay nghịch ngợm hệ thống âm thanh, loa đài, bảng điện và các trang thiết bị của Nhà văn hóa. Nếu học sinh cố ý làm hư hỏng, gia đình có trách nhiệm bồi hoàn, sửa chữa theo quy định.
+                          </p>
+                        </div>
+
+                        <div className="p-3.5 bg-emerald-50/70 border border-emerald-300/80 rounded-xl space-y-1">
+                          <p>
+                            <strong>2. Giữ gìn vệ sinh chung:</strong> Bỏ rác đúng nơi quy định trước khi ra về. Không mang đồ ăn vặt, kẹo cao su, nước ngọt có ga vào khuôn viên phòng học.
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm font-sans">
+                          <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
+                            <strong className="text-slate-900 block font-bold text-xs">3. Giờ giấc & An toàn:</strong>
+                            <p className="text-slate-700 leading-normal">
+                              Phụ huynh chủ động đưa đón con đúng giờ quy định tại cổng/sảnh Nhà văn hóa nhằm đảm bảo an toàn cho học sinh.
+                            </p>
+                          </div>
+                          <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
+                            <strong className="text-slate-900 block font-bold text-xs">4. Chuyên cần:</strong>
+                            <p className="text-slate-700 leading-normal">
+                              Đi học đầy đủ. Nếu nghỉ học vì lý do bất khả kháng, phụ huynh vui lòng nhắn tin thông báo trước cho giáo viên.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Cam kết của phụ huynh */}
+                      <div className="p-4 bg-amber-50/50 border border-amber-200 rounded-xl space-y-2 text-[13pt] text-black">
+                        <p className="font-bold text-[13pt] uppercase text-black">
+                          Cam kết của phụ huynh:
+                        </p>
+                        <p className="indent-[1cm] text-justify leading-relaxed">
+                          Tôi đã đọc, hiểu rõ toàn bộ mục đích, điều khoản sử dụng tài sản Nhà văn hóa cũng như quy chế đóng góp Quỹ vận hành của lớp học. Tôi hoàn toàn tự nguyện đăng ký cho con tham gia và cam kết phối hợp chặt chẽ cùng giáo viên và ban quản lý lớp trong suốt quá trình học.
+                        </p>
+                      </div>
 
                       {/* Checkboxes for Parent and Student */}
                       <div className="space-y-2.5 font-sans">
@@ -979,7 +1140,16 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
           commitmentDate: new Date().toISOString().split('T')[0],
           studentSignedName: studentSignedName || fullName,
           parentSignedName: parentSignedName || parentName,
-          locationName: 'Nhà văn hóa Thôn 16'
+          locationName: 'Nhà văn hóa Thôn 16',
+          policyCategory,
+          operatingFundAmount,
+          sessionsCount,
+          academicAbility,
+          subjectName,
+          courseProgram: chosenClass ? `Khóa học: ${chosenClass.name}` : `Khóa học Bổ trợ & Ôn tập kiến thức Tiếng Anh Lớp ${grade}`,
+          learningGoal: learningGoal.trim() || 'Củng cố nền tảng phát âm, tự tin giao tiếp và đạt kết quả tốt',
+          preferredSchedule: preferredSchedule.trim() || (chosenClass?.scheduleDescription || 'Ca học chiều tối (17h30 - 19h00)'),
+          departmentHead: 'Tiếng Anh (CLB StarKids - Nhà văn hóa Thôn 16)'
         }}
       />
     </>

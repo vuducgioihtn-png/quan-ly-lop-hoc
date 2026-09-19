@@ -32,6 +32,15 @@ export interface User {
   studentSignedName?: string;
   parentSignedName?: string;
   locationName?: string; // e.g., "Nhà văn hóa Thôn 16"
+  policyCategory?: 'policy_revolution' | 'poor_household' | 'standard' | string; // Diện chính sách / Hộ nghèo khó khăn / Đóng góp chung
+  operatingFundAmount?: string; // e.g. "50.000" or custom
+  sessionsCount?: string | number; // e.g. "12" or "16" buổi
+  academicAbility?: 'basic' | 'advanced' | 'gifted' | string; // Cần củng cố căn bản | Khá / Nâng cao | Luyện thi HSG / Chuyển cấp
+  subjectName?: string; // Môn học đăng ký: Tiếng Anh
+  courseProgram?: string; // Khóa học / Chương trình ôn tập cụ thể
+  learningGoal?: string; // Mục tiêu học tập của học sinh
+  preferredSchedule?: string; // Khung thời gian / Ca học mong muốn
+  departmentHead?: string; // Giáo viên / Ban quản lý phụ trách bộ môn
   stars?: number;
   levelTitle?: string;
 }

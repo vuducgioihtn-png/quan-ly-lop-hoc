@@ -32,7 +32,9 @@ import {
   Briefcase,
   ShieldAlert,
   KeyRound,
-  Copy
+  Copy,
+  FileText,
+  RotateCcw
 } from 'lucide-react';
 import { User, ClassRoom, AttendanceRecord, AppNotification, HomeworkSubmission } from '../types';
 import { TeacherModal } from './TeacherModal';
@@ -41,6 +43,7 @@ import { CreateClassModal } from './CreateClassModal';
 import { ClassRosterModal } from './ClassRosterModal';
 import { StudentDetailModal } from './StudentDetailModal';
 import { AccountCredentialsModal } from './AccountCredentialsModal';
+import { CommitmentDocumentModal } from './CommitmentDocumentModal';
 
 interface AdminPortalProps {
   adminUser: User;
@@ -48,7 +51,7 @@ interface AdminPortalProps {
   classes: ClassRoom[];
   attendanceRecords: AttendanceRecord[];
   submissions?: HomeworkSubmission[];
-  onApproveStudent: (studentId: string, approved: boolean) => void;
+  onApproveStudent: (studentId: string, approved: boolean | 'approved' | 'rejected' | 'pending') => void;
   onCreateClass: (newClass: Omit<ClassRoom, 'id'>, enrolledStudentIds?: string[]) => void;
   onUpdateClass?: (cls: ClassRoom, enrolledStudentIds?: string[]) => void;
   onDeleteClass?: (classId: string) => void;
@@ -119,6 +122,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [searchTeacher, setSearchTeacher] = useState('');
   const [selectedGrade, setSelectedGrade] = useState<number | 'all'>('all');
   const [actionToast, setActionToast] = useState<string | null>(null);
+  const [selectedStudentForDoc, setSelectedStudentForDoc] = useState<User | null>(null);
 
   // Class Management States
   const [isCreateClassModalOpen, setIsCreateClassModalOpen] = useState(false);
@@ -175,6 +179,7 @@ Học sinh: ${student.name} ${student.englishName ? `(${student.englishName})` :
   const allStudents = allUsers.filter((u) => u.role === 'student');
   const pendingStudents = allStudents.filter((u) => u.status === 'pending');
   const approvedStudents = allStudents.filter((u) => u.status === 'approved');
+  const rejectedStudents = allStudents.filter((u) => u.status === 'rejected');
   const allTeachers = allUsers.filter((u) => u.role === 'teacher');
   const allParents = allUsers.filter((u) => u.role === 'parent');
 
@@ -205,6 +210,11 @@ Học sinh: ${student.name} ${student.englishName ? `(${student.englishName})` :
   const handleReject = (student: User) => {
     onApproveStudent(student.id, false);
     showToast(`❌ Đã từ chối đơn đăng ký của bé ${student.name}.`);
+  };
+
+  const handleRevertToPending = (student: User) => {
+    onApproveStudent(student.id, 'pending');
+    showToast(`↩️ Đã chuyển hồ sơ của bé ${student.englishName || student.name} về trạng thái "Chờ Duyệt"!`);
   };
 
   // Teacher Handlers
@@ -909,6 +919,7 @@ Học sinh: ${student.name} ${student.englishName ? `(${student.englishName})` :
               {[
                 { id: 'pending', label: '⏳ Chờ Duyệt', count: pendingStudents.length },
                 { id: 'approved', label: '✓ Đã Duyệt', count: approvedStudents.length },
+                ...(rejectedStudents.length > 0 ? [{ id: 'rejected', label: '✕ Từ Chối', count: rejectedStudents.length }] : []),
                 { id: 'all', label: 'Tất Cả', count: allStudents.length }
               ].map((f) => (
                 <button
@@ -1027,16 +1038,29 @@ Học sinh: ${student.name} ${student.englishName ? `(${student.englishName})` :
                     </div>
 
                     {/* Action buttons */}
-                    <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+                    <div className="flex items-center gap-2 shrink-0 self-end md:self-center flex-wrap justify-end">
+                      {/* Button: Xem Lại Đơn (Available for all students in this tab) */}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedStudentForDoc(stu)}
+                        className="px-3.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold text-xs flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
+                        title="Xem lại toàn văn đơn đăng ký và cam kết hành chính A4 phụ huynh đã nộp"
+                      >
+                        <FileText className="w-3.5 h-3.5 text-amber-700" />
+                        <span>Xem Lại Đơn</span>
+                      </button>
+
                       {isPending ? (
                         <>
                           <button
+                            type="button"
                             onClick={() => handleReject(stu)}
                             className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-700 font-bold text-xs transition-colors cursor-pointer"
                           >
                             Từ Chối
                           </button>
                           <button
+                            type="button"
                             onClick={() => handleApprove(stu)}
                             className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center gap-1.5 shadow-md transition-all active:scale-98 cursor-pointer"
                           >
@@ -1044,12 +1068,45 @@ Học sinh: ${student.name} ${student.englishName ? `(${student.englishName})` :
                             <span>Duyệt & Xếp Lớp (+20⭐)</span>
                           </button>
                         </>
-                      ) : (
-                        <div className="text-right">
+                      ) : isApproved ? (
+                        <div className="flex items-center gap-2 flex-wrap justify-end">
                           <span className="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold inline-flex items-center gap-1">
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             Đã duyệt nhập học
                           </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRevertToPending(stu)}
+                            className="px-3 py-1.5 rounded-xl bg-white hover:bg-amber-50 hover:text-amber-900 hover:border-amber-300 border border-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs active:scale-95"
+                            title="Chuyển hồ sơ này trở lại danh sách Chờ Duyệt"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5 text-amber-600" />
+                            <span>Chuyển Về Chờ Duyệt</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 flex-wrap justify-end">
+                          <span className="px-3 py-1.5 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold inline-flex items-center gap-1">
+                            <XCircle className="w-3.5 h-3.5" />
+                            Đã từ chối
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRevertToPending(stu)}
+                            className="px-3 py-1.5 rounded-xl bg-white hover:bg-amber-50 hover:text-amber-900 hover:border-amber-300 border border-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs active:scale-95"
+                            title="Chuyển hồ sơ này trở lại danh sách Chờ Duyệt"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5 text-amber-600" />
+                            <span>Chuyển Về Chờ Duyệt</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleApprove(stu)}
+                            className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Duyệt Nhập Học</span>
+                          </button>
                         </div>
                       )}
                     </div>
@@ -2025,6 +2082,65 @@ Học sinh: ${student.name} ${student.englishName ? `(${student.englishName})` :
             </div>
           </div>
         </div>
+      )}
+
+      {/* Reusable Commitment Document Modal (Decree 30/2020/ND-CP Standard) */}
+      {selectedStudentForDoc && (
+        <CommitmentDocumentModal
+          isOpen={Boolean(selectedStudentForDoc)}
+          onClose={() => setSelectedStudentForDoc(null)}
+          status={selectedStudentForDoc.status}
+          onApprove={() => {
+            handleApprove(selectedStudentForDoc);
+            setSelectedStudentForDoc(null);
+          }}
+          onReject={() => {
+            handleReject(selectedStudentForDoc);
+            setSelectedStudentForDoc(null);
+          }}
+          onRevertToPending={() => {
+            handleRevertToPending(selectedStudentForDoc);
+            setSelectedStudentForDoc(null);
+          }}
+          studentData={{
+            fullName: selectedStudentForDoc.name,
+            englishName: selectedStudentForDoc.englishName,
+            birthDate: selectedStudentForDoc.birthDate,
+            grade: selectedStudentForDoc.grade,
+            gradeLabel:
+              classes.find((c) => c.id === selectedStudentForDoc.classId)?.gradeLabel ||
+              selectedStudentForDoc.gradeLabel ||
+              `Khối Lớp ${selectedStudentForDoc.grade || 3}`,
+            schoolName: selectedStudentForDoc.schoolName || 'Trường Tiểu học địa phương',
+            parentName: selectedStudentForDoc.parentName || 'Phụ huynh học sinh',
+            parentRelationship: selectedStudentForDoc.parentRelationship || 'Phụ huynh',
+            parentPhone: selectedStudentForDoc.parentPhone || selectedStudentForDoc.phone || '0988 123 456',
+            address: selectedStudentForDoc.address || 'Thôn 16, địa phương',
+            className: classes.find((c) => c.id === selectedStudentForDoc.classId)?.name,
+            commitmentDate: selectedStudentForDoc.commitmentDate || selectedStudentForDoc.registeredAt,
+            studentSignedName: selectedStudentForDoc.studentSignedName || selectedStudentForDoc.name,
+            parentSignedName: selectedStudentForDoc.parentSignedName || selectedStudentForDoc.parentName,
+            locationName: selectedStudentForDoc.locationName || 'Nhà văn hóa Thôn 16',
+            policyCategory: selectedStudentForDoc.policyCategory || 'standard',
+            operatingFundAmount: selectedStudentForDoc.operatingFundAmount || '50.000',
+            sessionsCount: selectedStudentForDoc.sessionsCount || '16',
+            academicAbility: selectedStudentForDoc.academicAbility || 'basic',
+            subjectName: selectedStudentForDoc.subjectName || 'Tiếng Anh tiểu học & Kỹ năng giao tiếp',
+            courseProgram:
+              selectedStudentForDoc.courseProgram ||
+              (classes.find((c) => c.id === selectedStudentForDoc.classId)?.name
+                ? `Lớp ${classes.find((c) => c.id === selectedStudentForDoc.classId)?.name}`
+                : `Chương trình Bổ trợ & Nâng cao Tiếng Anh Lớp ${selectedStudentForDoc.grade || 3}`),
+            learningGoal:
+              selectedStudentForDoc.learningGoal ||
+              'Củng cố nền tảng phát âm, tự tin giao tiếp và đạt điểm tốt môn Tiếng Anh',
+            preferredSchedule:
+              selectedStudentForDoc.preferredSchedule ||
+              classes.find((c) => c.id === selectedStudentForDoc.classId)?.scheduleDescription ||
+              'Ca học các ngày trong tuần (17h30 - 19h00)',
+            departmentHead: selectedStudentForDoc.departmentHead || 'Tiếng Anh (CLB StarKids - Nhà văn hóa Thôn 16)'
+          }}
+        />
       )}
     </div>
   );

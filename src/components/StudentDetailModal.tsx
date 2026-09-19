@@ -604,6 +604,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
       <CommitmentDocumentModal
         isOpen={showCommitmentDoc}
         onClose={() => setShowCommitmentDoc(false)}
+        status={student.status}
         studentData={{
           fullName: student.name,
           englishName: student.englishName,
@@ -619,7 +620,19 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
           commitmentDate: student.commitmentDate || student.registeredAt,
           studentSignedName: student.studentSignedName || student.name,
           parentSignedName: student.parentSignedName || student.parentName,
-          locationName: student.locationName || 'Nhà văn hóa Thôn 16'
+          locationName: student.locationName || 'Nhà văn hóa Thôn 16',
+          policyCategory: student.policyCategory || 'standard',
+          operatingFundAmount: student.operatingFundAmount || '50.000',
+          sessionsCount: student.sessionsCount || '16',
+          academicAbility: student.academicAbility || 'basic',
+          subjectName: student.subjectName || 'Tiếng Anh tiểu học & Kỹ năng giao tiếp',
+          courseProgram:
+            student.courseProgram ||
+            (assignedClass ? `Lớp ${assignedClass.name}` : `Chương trình Bổ trợ & Nâng cao Tiếng Anh Lớp ${student.grade || 3}`),
+          learningGoal: student.learningGoal || 'Củng cố nền tảng phát âm, tự tin giao tiếp và đạt điểm tốt môn Tiếng Anh',
+          preferredSchedule:
+            student.preferredSchedule || assignedClass?.scheduleDescription || 'Ca học các ngày trong tuần (17h30 - 19h00)',
+          departmentHead: student.departmentHead || 'Tiếng Anh (CLB StarKids - Nhà văn hóa Thôn 16)'
         }}
       />
     </div>

@@ -178,14 +178,23 @@ export default function App() {
     setNotifications((prev) => [newNotif, ...prev]);
   };
 
-  const handleApproveStudent = (studentId: string, approved: boolean) => {
+  const handleApproveStudent = (
+    studentId: string,
+    actionOrStatus: boolean | 'approved' | 'rejected' | 'pending'
+  ) => {
+    const nextStatus: 'approved' | 'rejected' | 'pending' =
+      typeof actionOrStatus === 'boolean'
+        ? (actionOrStatus ? 'approved' : 'rejected')
+        : actionOrStatus;
+
     setUsers((prev) =>
       prev.map((u) => {
         if (u.id === studentId) {
+          const bonusStars = (nextStatus === 'approved' && u.status !== 'approved') ? 20 : 0;
           return {
             ...u,
-            status: approved ? 'approved' : 'rejected',
-            stars: approved ? (u.stars || 0) + 20 : u.stars
+            status: nextStatus,
+            stars: (u.stars || 0) + bonusStars
           };
         }
         return u;
@@ -195,15 +204,29 @@ export default function App() {
     const targetStudent = users.find((u) => u.id === studentId);
 
     // Notification
+    let notifTitle = 'Thông báo hồ sơ đăng ký';
+    let notifMessage = '';
+    let notifType: AppNotification['type'] = 'announcement';
+
+    if (nextStatus === 'approved') {
+      notifTitle = '🎉 Chúc mừng! Tài khoản đã được phê duyệt';
+      notifMessage = `Chào mừng bé ${targetStudent?.englishName || targetStudent?.name} gia nhập StarKids English Club! Con được tặng ngay 20 Sao Vàng ⭐.`;
+      notifType = 'award';
+    } else if (nextStatus === 'rejected') {
+      notifTitle = 'Thông báo hồ sơ đăng ký';
+      notifMessage = `Hồ sơ đăng ký của bạn chưa đủ điều kiện xếp lớp. Vui lòng liên hệ hotline để được hỗ trợ.`;
+    } else {
+      notifTitle = '⏳ Hồ sơ chuyển về Chờ Duyệt';
+      notifMessage = `Hồ sơ của bé ${targetStudent?.englishName || targetStudent?.name} đã được chuyển về trạng thái Chờ Duyệt để xem xét lại.`;
+    }
+
     const notif: AppNotification = {
       id: `notif-${Date.now()}`,
       targetRole: 'student',
       targetUserId: studentId,
-      title: approved ? '🎉 Chúc mừng! Tài khoản đã được phê duyệt' : 'Thông báo hồ sơ đăng ký',
-      message: approved
-        ? `Chào mừng bé ${targetStudent?.englishName || targetStudent?.name} gia nhập StarKids English Club! Con được tặng ngay 20 Sao Vàng ⭐.`
-        : `Hồ sơ của bạn chưa đủ điều kiện xếp lớp. Vui lòng liên hệ hotline để được hỗ trợ.`,
-      type: 'award',
+      title: notifTitle,
+      message: notifMessage,
+      type: notifType,
       createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
       read: false
     };

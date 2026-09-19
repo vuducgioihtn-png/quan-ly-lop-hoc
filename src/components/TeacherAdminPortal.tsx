@@ -59,7 +59,7 @@ interface TeacherAdminPortalProps {
   submissions: HomeworkSubmission[];
   materials: StudyMaterial[];
   onSaveAttendance: (records: AttendanceRecord[]) => void;
-  onApproveStudent: (studentId: string, approved: boolean) => void;
+  onApproveStudent: (studentId: string, approved: boolean | 'approved' | 'rejected' | 'pending') => void;
   onGradeSubmission: (
     subId: string,
     score: number,
@@ -2163,6 +2163,19 @@ export const TeacherAdminPortal: React.FC<TeacherAdminPortalProps> = ({
         <CommitmentDocumentModal
           isOpen={!!selectedCommitmentStudent}
           onClose={() => setSelectedCommitmentStudent(null)}
+          status={selectedCommitmentStudent.status}
+          onApprove={() => {
+            onApproveStudent(selectedCommitmentStudent.id, true);
+            setSelectedCommitmentStudent(null);
+          }}
+          onReject={() => {
+            onApproveStudent(selectedCommitmentStudent.id, false);
+            setSelectedCommitmentStudent(null);
+          }}
+          onRevertToPending={() => {
+            onApproveStudent(selectedCommitmentStudent.id, 'pending');
+            setSelectedCommitmentStudent(null);
+          }}
           studentData={{
             fullName: selectedCommitmentStudent.name,
             englishName: selectedCommitmentStudent.englishName,
@@ -2178,7 +2191,25 @@ export const TeacherAdminPortal: React.FC<TeacherAdminPortalProps> = ({
             commitmentDate: selectedCommitmentStudent.commitmentDate || selectedCommitmentStudent.registeredAt,
             studentSignedName: selectedCommitmentStudent.studentSignedName || selectedCommitmentStudent.name,
             parentSignedName: selectedCommitmentStudent.parentSignedName || selectedCommitmentStudent.parentName,
-            locationName: selectedCommitmentStudent.locationName || 'Nhà văn hóa Thôn 16'
+            locationName: selectedCommitmentStudent.locationName || 'Nhà văn hóa Thôn 16',
+            policyCategory: selectedCommitmentStudent.policyCategory || 'standard',
+            operatingFundAmount: selectedCommitmentStudent.operatingFundAmount || '50.000',
+            sessionsCount: selectedCommitmentStudent.sessionsCount || '16',
+            academicAbility: selectedCommitmentStudent.academicAbility || 'basic',
+            subjectName: selectedCommitmentStudent.subjectName || 'Tiếng Anh tiểu học & Kỹ năng giao tiếp',
+            courseProgram:
+              selectedCommitmentStudent.courseProgram ||
+              (classes.find((c) => c.id === selectedCommitmentStudent.classId)?.name
+                ? `Lớp ${classes.find((c) => c.id === selectedCommitmentStudent.classId)?.name}`
+                : `Chương trình Bổ trợ & Nâng cao Tiếng Anh Lớp ${selectedCommitmentStudent.grade || 3}`),
+            learningGoal:
+              selectedCommitmentStudent.learningGoal ||
+              'Củng cố nền tảng phát âm, tự tin giao tiếp và đạt điểm tốt môn Tiếng Anh',
+            preferredSchedule:
+              selectedCommitmentStudent.preferredSchedule ||
+              classes.find((c) => c.id === selectedCommitmentStudent.classId)?.scheduleDescription ||
+              'Ca học các ngày trong tuần (17h30 - 19h00)',
+            departmentHead: selectedCommitmentStudent.departmentHead || 'Tiếng Anh (CLB StarKids - Nhà văn hóa Thôn 16)'
           }}
         />
       )}
