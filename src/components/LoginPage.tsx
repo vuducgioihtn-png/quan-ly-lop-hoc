@@ -43,13 +43,43 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
       role: 'admin',
       email: 'admin@starkids.edu.vn',
+      password: 'starkids2026',
       status: 'approved',
       registeredAt: '2025-11-01',
       levelTitle: 'Ban Giám Hiệu'
     } as User);
 
+  const allTeacherUsers = allUsers.filter((u) => u.role === 'teacher');
+  const allStudentUsers = allUsers.filter((u) => u.role === 'student' && u.status === 'approved');
+
+  // Derive parent accounts: explicit parent users + parent contacts from students
+  const parentAccountsList: User[] = [
+    ...allUsers.filter((u) => u.role === 'parent'),
+    ...allUsers
+      .filter(
+        (u) =>
+          u.role === 'student' &&
+          (u.parentName || u.parentEmail || u.parentPhone) &&
+          !allUsers.some((p) => p.role === 'parent' && p.studentId === u.id)
+      )
+      .map((s) => ({
+        id: `parent-${s.id}`,
+        name: s.parentName || `Phụ huynh em ${s.name}`,
+        avatar:
+          'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+        role: 'parent' as const,
+        email: s.parentEmail || `${(s.englishName || 'parent').toLowerCase()}.parent@gmail.com`,
+        phone: s.parentPhone || s.phone || '0988 123 456',
+        password: s.parentPassword || 'starkids2026',
+        studentId: s.id,
+        status: 'approved' as const,
+        registeredAt: s.registeredAt
+      }))
+  ];
+
   const teacherUser =
-    allUsers.find((u) => u.role === 'teacher') ||
+    allTeacherUsers.find((u) => u.email.toLowerCase() === email.toLowerCase()) ||
+    allTeacherUsers[0] ||
     ({
       id: 'teacher-1',
       name: 'Cô Emily (Thu Hương)',
@@ -57,14 +87,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       avatar: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=150&auto=format&fit=crop&q=80',
       role: 'teacher',
       email: 'emily.teacher@starkids.edu.vn',
+      password: 'starkids2026',
       status: 'approved',
       registeredAt: '2026-01-10',
       levelTitle: 'Lead ESL Teacher'
     } as User);
 
   const studentTommy =
-    allUsers.find((u) => u.id === 'stu-1') ||
-    allUsers.find((u) => u.role === 'student' && u.status === 'approved') ||
+    allStudentUsers.find((u) => u.email.toLowerCase() === email.toLowerCase()) ||
+    allStudentUsers.find((u) => u.id === 'stu-1') ||
+    allStudentUsers[0] ||
     ({
       id: 'stu-1',
       name: 'Nguyễn Minh Khôi',
@@ -72,6 +104,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
       role: 'student',
       email: 'tommy.khoi@gmail.com',
+      password: 'starkids2026',
       grade: 3,
       classId: 'class-3',
       stars: 175,
@@ -80,13 +113,20 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     } as User);
 
   const parentUser =
-    allUsers.find((u) => u.role === 'parent') ||
+    parentAccountsList.find(
+      (u) =>
+        u.email.toLowerCase() === email.toLowerCase() ||
+        (u.phone && email.replace(/\D/g, '') && u.phone.replace(/\D/g, '') === email.replace(/\D/g, ''))
+    ) ||
+    parentAccountsList[0] ||
     ({
       id: 'parent-1',
       name: 'Chị Nguyễn Thu Hà',
       avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
       role: 'parent',
       email: 'thuha.mom@gmail.com',
+      phone: '0988 123 456',
+      password: 'starkids2026',
       studentId: 'stu-1',
       status: 'approved',
       registeredAt: '2026-02-15'
@@ -97,12 +137,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     setError(null);
     if (role === 'admin') {
       setEmail(adminUser.email);
+      setPassword(adminUser.password || 'starkids2026');
     } else if (role === 'teacher') {
       setEmail(teacherUser.email);
+      setPassword(teacherUser.password || 'starkids2026');
     } else if (role === 'student') {
       setEmail(studentTommy.email);
+      setPassword(studentTommy.password || 'starkids2026');
     } else if (role === 'parent') {
       setEmail(parentUser.email);
+      setPassword(parentUser.password || 'starkids2026');
     }
   };
 
@@ -110,12 +154,59 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     e.preventDefault();
     setError(null);
 
-    // Find user by email or matching role
-    const matchedUser = allUsers.find(
-      (u) => u.email.toLowerCase() === email.trim().toLowerCase()
-    );
+    const inputClean = email.trim().toLowerCase();
+    const phoneClean = email.trim().replace(/\D/g, '');
+
+    // 1. Exact match by role & email or phone or username
+    let matchedUser = allUsers.find((u) => {
+      if (u.role !== selectedRole) return false;
+      const uEmail = (u.email || '').toLowerCase();
+      const uPhone = (u.phone || '').replace(/\D/g, '');
+      const pPhone = (u.parentPhone || '').replace(/\D/g, '');
+      const pEmail = (u.parentEmail || '').toLowerCase();
+
+      if (uEmail === inputClean) return true;
+      if (phoneClean.length >= 8 && (uPhone === phoneClean || pPhone === phoneClean)) return true;
+      if (pEmail && pEmail === inputClean) return true;
+      return false;
+    });
+
+    // 2. If logging in as parent, check if a student has matching parent info
+    if (!matchedUser && selectedRole === 'parent') {
+      const studentWithParent = allUsers.find((u) => {
+        if (u.role !== 'student') return false;
+        const pEmail = (u.parentEmail || '').toLowerCase();
+        const pPhone = (u.parentPhone || u.phone || '').replace(/\D/g, '');
+        return pEmail === inputClean || (phoneClean.length >= 8 && pPhone === phoneClean);
+      });
+      if (studentWithParent) {
+        matchedUser = {
+          id: `parent-${studentWithParent.id}`,
+          name: studentWithParent.parentName || `Phụ huynh em ${studentWithParent.name}`,
+          avatar:
+            'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+          role: 'parent',
+          email: studentWithParent.parentEmail || `${studentWithParent.englishName || 'parent'}.parent@gmail.com`,
+          phone: studentWithParent.parentPhone || '0988 123 456',
+          password: studentWithParent.parentPassword || 'starkids2026',
+          studentId: studentWithParent.id,
+          status: 'approved',
+          registeredAt: studentWithParent.registeredAt
+        };
+      }
+    }
+
+    // 3. General fallback by email
+    if (!matchedUser) {
+      matchedUser = allUsers.find((u) => u.email.toLowerCase() === inputClean);
+    }
 
     if (matchedUser) {
+      const expectedPassword = matchedUser.password || 'starkids2026';
+      if (password.trim() && expectedPassword.trim() !== password.trim()) {
+        setError('Mật khẩu không chính xác! Vui lòng kiểm tra lại mật khẩu do Admin cấp.');
+        return;
+      }
       onLogin(matchedUser);
       return;
     }
@@ -286,6 +377,141 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             </button>
           </div>
 
+          {/* Teacher Selector if multiple teachers exist */}
+          {selectedRole === 'teacher' && allTeacherUsers.length > 1 && (
+            <div className="mb-5 p-3 bg-emerald-50/60 rounded-2xl border border-emerald-200/80">
+              <label className="block text-[11px] font-bold text-emerald-900 mb-2">
+                Chọn tài khoản giáo viên để thử nghiệm:
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {allTeacherUsers.map((t) => {
+                  const isSelected = email.toLowerCase() === t.email.toLowerCase();
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => {
+                        setEmail(t.email);
+                        setPassword(t.password || 'starkids2026');
+                        setError(null);
+                      }}
+                      className={`p-2 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-white border-emerald-500 text-emerald-950 font-bold shadow-xs ring-2 ring-emerald-500/20'
+                          : 'bg-white/80 border-slate-200 text-slate-700 hover:bg-white'
+                      }`}
+                    >
+                      <img
+                        src={t.avatar}
+                        alt={t.name}
+                        className="w-7 h-7 rounded-lg object-cover ring-1 ring-slate-200 shrink-0"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold truncate leading-tight">{t.name}</p>
+                        <p className="text-[10px] text-slate-500 truncate">{t.email}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Student Selector */}
+          {selectedRole === 'student' && allStudentUsers.length > 1 && (
+            <div className="mb-5 p-3 bg-amber-50/60 rounded-2xl border border-amber-200/80">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-[11px] font-bold text-amber-950">
+                  Chọn học sinh để kiểm tra tài khoản đã cấp:
+                </label>
+                <span className="text-[10px] text-amber-700 font-semibold">{allStudentUsers.length} học sinh</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+                {allStudentUsers.map((s) => {
+                  const isSelected = email.toLowerCase() === s.email.toLowerCase();
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => {
+                        setEmail(s.email);
+                        setPassword(s.password || 'starkids2026');
+                        setError(null);
+                      }}
+                      className={`p-2 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-white border-amber-500 text-amber-950 font-bold shadow-xs ring-2 ring-amber-500/20'
+                          : 'bg-white/80 border-slate-200 text-slate-700 hover:bg-white'
+                      }`}
+                    >
+                      <img
+                        src={s.avatar}
+                        alt={s.name}
+                        className="w-7 h-7 rounded-lg object-cover ring-1 ring-slate-200 shrink-0"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold truncate leading-tight">
+                          {s.englishName || s.name} <span className="text-[10px] text-slate-500 font-normal">({s.name})</span>
+                        </p>
+                        <p className="text-[10px] text-slate-500 truncate font-mono">{s.email}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Parent Selector */}
+          {selectedRole === 'parent' && parentAccountsList.length > 1 && (
+            <div className="mb-5 p-3 bg-purple-50/60 rounded-2xl border border-purple-200/80">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-[11px] font-bold text-purple-950">
+                  Chọn phụ huynh để kiểm tra đăng nhập:
+                </label>
+                <span className="text-[10px] text-purple-700 font-semibold">{parentAccountsList.length} tài khoản</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+                {parentAccountsList.map((p) => {
+                  const isSelected =
+                    email.toLowerCase() === p.email.toLowerCase() ||
+                    (p.phone && email.replace(/\D/g, '') && p.phone.replace(/\D/g, '') === email.replace(/\D/g, ''));
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        setEmail(p.email);
+                        setPassword(p.password || 'starkids2026');
+                        setError(null);
+                      }}
+                      className={`p-2 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-white border-purple-500 text-purple-950 font-bold shadow-xs ring-2 ring-purple-500/20'
+                          : 'bg-white/80 border-slate-200 text-slate-700 hover:bg-white'
+                      }`}
+                    >
+                      <img
+                        src={p.avatar}
+                        alt={p.name}
+                        className="w-7 h-7 rounded-lg object-cover ring-1 ring-slate-200 shrink-0"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold truncate leading-tight">{p.name}</p>
+                        <p className="text-[10px] text-slate-500 truncate font-mono">
+                          {p.phone ? `${p.phone} • ` : ''}{p.email}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Standard Login Form */}
           <form onSubmit={handleFormSubmit} className="space-y-4">
             {error && (
@@ -296,7 +522,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                Email hoặc Tên tài khoản:
+                {selectedRole === 'parent'
+                  ? 'Email hoặc Số điện thoại Phụ huynh:'
+                  : selectedRole === 'student'
+                  ? 'Email / Tên đăng nhập của Học sinh:'
+                  : selectedRole === 'teacher'
+                  ? 'Email Giáo viên:'
+                  : 'Email Quản trị viên (Admin):'}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -308,7 +540,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="block w-full pl-9 pr-3 py-2.5 text-sm rounded-xl border border-slate-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 font-medium"
-                  placeholder="Nhập email đăng nhập..."
+                  placeholder={
+                    selectedRole === 'parent'
+                      ? 'Nhập email hoặc SĐT phụ huynh (VD: 0988 123 456)...'
+                      : selectedRole === 'student'
+                      ? 'Nhập email học sinh (VD: tommy.khoi@gmail.com)...'
+                      : 'Nhập email đăng nhập...'
+                  }
                 />
               </div>
             </div>

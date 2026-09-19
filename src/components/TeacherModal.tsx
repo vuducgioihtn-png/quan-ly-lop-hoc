@@ -8,7 +8,13 @@ import {
   Sparkles,
   School,
   Check,
-  AlertCircle
+  AlertCircle,
+  KeyRound,
+  Eye,
+  EyeOff,
+  RefreshCw,
+  Copy,
+  ShieldCheck
 } from 'lucide-react';
 import { User, ClassRoom } from '../types';
 
@@ -49,6 +55,9 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
   const [name, setName] = useState('');
   const [englishName, setEnglishName] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('starkids2026');
+  const [showPassword, setShowPassword] = useState(false);
+  const [copiedCredentials, setCopiedCredentials] = useState(false);
   const [phone, setPhone] = useState('');
   const [levelTitle, setLevelTitle] = useState(SPECIALTY_OPTIONS[0]);
   const [avatar, setAvatar] = useState(TEACHER_AVATARS[0]);
@@ -61,6 +70,7 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
       setName(initialTeacher.name || '');
       setEnglishName(initialTeacher.englishName || '');
       setEmail(initialTeacher.email || '');
+      setPassword(initialTeacher.password || 'starkids2026');
       setPhone(initialTeacher.phone || '');
       setLevelTitle(initialTeacher.levelTitle || SPECIALTY_OPTIONS[0]);
       setAvatar(initialTeacher.avatar || TEACHER_AVATARS[0]);
@@ -79,6 +89,7 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
       setName('');
       setEnglishName('');
       setEmail('');
+      setPassword('starkids2026');
       setPhone('');
       setLevelTitle(SPECIALTY_OPTIONS[0]);
       setAvatar(TEACHER_AVATARS[Math.floor(Math.random() * TEACHER_AVATARS.length)]);
@@ -86,6 +97,7 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
       setSelectedClassIds([]);
     }
     setError(null);
+    setCopiedCredentials(false);
   }, [initialTeacher, isOpen, classes]);
 
   if (!isOpen) return null;
@@ -94,6 +106,24 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
     setSelectedClassIds((prev) =>
       prev.includes(classId) ? prev.filter((id) => id !== classId) : [...prev, classId]
     );
+  };
+
+  const handleGeneratePassword = () => {
+    const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz';
+    let rand = '';
+    for (let i = 0; i < 6; i++) {
+      rand += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    const newPass = `SK@${rand}`;
+    setPassword(newPass);
+    setShowPassword(true);
+  };
+
+  const handleCopyCredentials = () => {
+    const text = `Tài khoản giáo viên StarKids:\n- Họ tên: ${name || 'Giáo viên'}\n- Email: ${email || 'Chưa nhập'}\n- Mật khẩu: ${password}\n- Cổng đăng nhập: Chọn vai trò "Giáo viên phụ trách"`;
+    navigator.clipboard?.writeText(text);
+    setCopiedCredentials(true);
+    setTimeout(() => setCopiedCredentials(false), 2500);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -106,6 +136,10 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
       setError('Vui lòng nhập email hợp lệ');
       return;
     }
+    if (!password.trim() || password.trim().length < 6) {
+      setError('Vui lòng cấp mật khẩu đăng nhập (ít nhất 6 ký tự)');
+      return;
+    }
 
     const teacherObj: User = {
       id: initialTeacher?.id || `teacher-${Date.now()}`,
@@ -114,6 +148,7 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
       avatar,
       role: 'teacher',
       email: email.trim().toLowerCase(),
+      password: password.trim(),
       phone: phone.trim() || '0912 345 678',
       status,
       registeredAt: initialTeacher?.registeredAt || new Date().toISOString().split('T')[0],
@@ -222,11 +257,11 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
             </div>
           </div>
 
-          {/* Email and Phone */}
+          {/* Email công vụ & Cấp mật khẩu đăng nhập */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                Email công vụ <span className="text-rose-500">*</span>
+                Email công vụ (Tên đăng nhập) <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
@@ -242,6 +277,97 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
             </div>
 
             <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-bold text-slate-700">
+                  Cấp mật khẩu đăng nhập <span className="text-rose-500">*</span>
+                </label>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={handleGeneratePassword}
+                    className="text-[10.5px] font-bold text-emerald-600 hover:text-emerald-700 hover:underline flex items-center gap-1 cursor-pointer"
+                    title="Tự động tạo mật khẩu ngẫu nhiên an toàn"
+                  >
+                    <RefreshCw className="w-2.5 h-2.5" />
+                    <span>Tạo mới</span>
+                  </button>
+                  <span className="text-slate-300 text-[10px]">•</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPassword('starkids2026');
+                      setShowPassword(true);
+                    }}
+                    className="text-[10.5px] font-bold text-slate-500 hover:text-slate-700 hover:underline cursor-pointer"
+                    title="Đặt lại mật khẩu mặc định: starkids2026"
+                  >
+                    Mặc định
+                  </button>
+                </div>
+              </div>
+              <div className="relative">
+                <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Nhập hoặc cấp mật khẩu..."
+                  className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  title={showPassword ? 'Ẩn mật khẩu' : 'Xem mật khẩu'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Hộp cấp tài khoản & nút sao chép gửi giáo viên */}
+          <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-2xl flex items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11.5px] text-emerald-950 font-bold truncate">
+                  Cấp quyền truy cập cổng giảng dạy:
+                </p>
+                <p className="text-[11px] text-emerald-800 truncate">
+                  Tài khoản: <strong className="font-mono">{email || 'Chưa nhập email'}</strong> • Mật khẩu: <strong className="font-mono">{password || 'starkids2026'}</strong>
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleCopyCredentials}
+              className={`px-3 py-1.5 rounded-xl text-[11px] font-bold shrink-0 transition-all border cursor-pointer flex items-center gap-1.5 ${
+                copiedCredentials
+                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                  : 'bg-white hover:bg-emerald-100/70 text-emerald-800 border-emerald-300'
+              }`}
+            >
+              {copiedCredentials ? (
+                <>
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Đã sao chép</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>Sao chép gửi GV</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Phone and Specialty */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
                 Số điện thoại liên hệ
               </label>
@@ -256,10 +382,7 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
                 />
               </div>
             </div>
-          </div>
 
-          {/* Specialty & Status */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
                 Chức danh / Chuyên môn
@@ -279,21 +402,22 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
                 </select>
               </div>
             </div>
+          </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Trạng thái giảng dạy
-              </label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as any)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
-              >
-                <option value="approved">🟢 Đang công tác & Giảng dạy</option>
-                <option value="pending">🟡 Chờ sắp xếp lịch dạy</option>
-                <option value="rejected">🔴 Tạm nghỉ / Nghỉ phép</option>
-              </select>
-            </div>
+          {/* Trạng thái giảng dạy */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              Trạng thái giảng dạy
+            </label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as any)}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
+            >
+              <option value="approved">🟢 Đang công tác & Giảng dạy</option>
+              <option value="pending">🟡 Chờ sắp xếp lịch dạy</option>
+              <option value="rejected">🔴 Tạm nghỉ / Nghỉ phép</option>
+            </select>
           </div>
 
           {/* Assigned Classes */}

@@ -587,6 +587,92 @@ export default function App() {
     }
   };
 
+  const handleUpdateUserCredentials = (
+    studentId: string,
+    studentData: {
+      email: string;
+      password: string;
+      status: 'approved' | 'pending' | 'rejected';
+    },
+    parentData: {
+      name: string;
+      email: string;
+      phone: string;
+      password: string;
+    }
+  ) => {
+    setUsers((prev) => {
+      const student = prev.find((u) => u.id === studentId);
+      if (!student) return prev;
+
+      // Check if parent user already exists
+      const existingParentIndex = prev.findIndex(
+        (u) =>
+          u.role === 'parent' &&
+          (u.studentId === studentId ||
+            (student.parentEmail && u.email.toLowerCase() === student.parentEmail.toLowerCase()) ||
+            u.email.toLowerCase() === parentData.email.toLowerCase() ||
+            (u.phone && parentData.phone && u.phone.replace(/\s+/g, '') === parentData.phone.replace(/\s+/g, '')))
+      );
+
+      let updatedUsers = prev.map((u) => {
+        if (u.id === studentId) {
+          return {
+            ...u,
+            email: studentData.email,
+            password: studentData.password,
+            status: studentData.status,
+            parentName: parentData.name,
+            parentEmail: parentData.email,
+            parentPhone: parentData.phone,
+            parentPassword: parentData.password
+          };
+        }
+        return u;
+      });
+
+      if (existingParentIndex !== -1) {
+        const existingParent = updatedUsers[existingParentIndex];
+        updatedUsers[existingParentIndex] = {
+          ...existingParent,
+          name: parentData.name || existingParent.name,
+          email: parentData.email,
+          phone: parentData.phone,
+          password: parentData.password,
+          studentId: studentId
+        };
+      } else {
+        const newParent: User = {
+          id: `parent-${studentId}-${Date.now().toString().slice(-4)}`,
+          name: parentData.name || `Phụ huynh em ${student.name}`,
+          avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+          role: 'parent',
+          email: parentData.email,
+          phone: parentData.phone,
+          password: parentData.password,
+          studentId: studentId,
+          status: 'approved',
+          registeredAt: new Date().toISOString().split('T')[0]
+        };
+        updatedUsers.push(newParent);
+      }
+
+      saveUsers(updatedUsers);
+      return updatedUsers;
+    });
+
+    const notif: AppNotification = {
+      id: `notif-creds-${Date.now()}`,
+      targetRole: 'all',
+      title: '🔐 Đã cấp quyền & cập nhật mật khẩu',
+      message: `Tài khoản học sinh và phụ huynh cho bé ${studentId} đã được cập nhật thành công.`,
+      type: 'announcement',
+      createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      read: false
+    };
+    setNotifications((prev) => [notif, ...prev]);
+  };
+
   const handleSendTestReminder = () => {
     const sampleReminders = [
       {
@@ -692,6 +778,7 @@ export default function App() {
             onAddTeacher={handleAddTeacher}
             onUpdateTeacher={handleUpdateTeacher}
             onDeleteTeacher={handleDeleteTeacher}
+            onUpdateUserCredentials={handleUpdateUserCredentials}
           />
         )}
 

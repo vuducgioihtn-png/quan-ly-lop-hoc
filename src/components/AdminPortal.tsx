@@ -30,7 +30,9 @@ import {
   UserCheck,
   BadgeCheck,
   Briefcase,
-  ShieldAlert
+  ShieldAlert,
+  KeyRound,
+  Copy
 } from 'lucide-react';
 import { User, ClassRoom, AttendanceRecord, AppNotification, HomeworkSubmission } from '../types';
 import { TeacherModal } from './TeacherModal';
@@ -38,6 +40,7 @@ import { DirectMessageTeacherModal } from './DirectMessageTeacherModal';
 import { CreateClassModal } from './CreateClassModal';
 import { ClassRosterModal } from './ClassRosterModal';
 import { StudentDetailModal } from './StudentDetailModal';
+import { AccountCredentialsModal } from './AccountCredentialsModal';
 
 interface AdminPortalProps {
   adminUser: User;
@@ -57,6 +60,20 @@ interface AdminPortalProps {
   onAddTeacher?: (newTeacher: User, assignedClassIds: string[]) => void;
   onUpdateTeacher?: (updatedTeacher: User, assignedClassIds: string[]) => void;
   onDeleteTeacher?: (teacherId: string) => void;
+  onUpdateUserCredentials?: (
+    studentId: string,
+    studentData: {
+      email: string;
+      password: string;
+      status: 'approved' | 'pending' | 'rejected';
+    },
+    parentData: {
+      name: string;
+      email: string;
+      phone: string;
+      password: string;
+    }
+  ) => void;
   onBroadcastNotification: (
     title: string,
     message: string,
@@ -85,6 +102,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   onAddTeacher,
   onUpdateTeacher,
   onDeleteTeacher,
+  onUpdateUserCredentials,
   onBroadcastNotification,
   onOpenCreateClassModal,
   activeTab: controlledTab,
@@ -112,11 +130,38 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
   // Student Directory States
   const [selectedStudentForDetail, setSelectedStudentForDetail] = useState<User | null>(null);
+  const [selectedStudentForCredentials, setSelectedStudentForCredentials] = useState<User | null>(null);
+  const [isCredentialsModalOpen, setIsCredentialsModalOpen] = useState(false);
   const [studentDirectorySearch, setStudentDirectorySearch] = useState('');
   const [studentGradeFilter, setStudentGradeFilter] = useState<string | number | 'all'>('all');
   const [studentClassFilter, setStudentClassFilter] = useState<string | 'all'>('all');
   const [studentStatusFilter, setStudentStatusFilter] = useState<'all' | 'approved' | 'pending'>('all');
   const [studentSortBy, setStudentSortBy] = useState<'stars' | 'name' | 'grade'>('stars');
+
+  const handleOpenCredentials = (student: User) => {
+    setSelectedStudentForCredentials(student);
+    setIsCredentialsModalOpen(true);
+  };
+
+  const handleQuickCopyStudentParentCreds = (student: User, studentClass?: ClassRoom) => {
+    const pEmail = student.parentEmail || `${(student.englishName || 'parent').toLowerCase()}.parent@gmail.com`;
+    const pPhone = student.parentPhone || student.phone || '0988 123 456';
+    const text = `🌟 TÀI KHOẢN HỆ THỐNG STARKIDS ENGLISH 🌟
+Học sinh: ${student.name} ${student.englishName ? `(${student.englishName})` : ''} - Lớp: ${studentClass?.name || 'Tiểu học'}
+
+1️⃣ CỔNG PHỤ HUYNH (Sổ liên lạc & Theo dõi học tập):
+- Tên đăng nhập: ${pEmail} (hoặc SĐT: ${pPhone})
+- Mật khẩu: ${student.parentPassword || 'starkids2026'}
+- Cổng đăng nhập: Chọn vai trò "Phụ huynh học sinh"
+
+2️⃣ CỔNG HỌC SINH (Làm bài tập & Tích sao thưởng):
+- Tên đăng nhập: ${student.email}
+- Mật khẩu: ${student.password || 'starkids2026'}
+- Cổng đăng nhập: Chọn vai trò "Học sinh tiểu học"`;
+
+    navigator.clipboard?.writeText(text);
+    showToast(`📋 Đã sao chép tài khoản của bé ${student.englishName || student.name} & Phụ huynh để gửi Zalo!`);
+  };
 
   // Teacher Management States
   const [isAddTeacherOpen, setIsAddTeacherOpen] = useState(false);
@@ -705,6 +750,29 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                         <div className="flex items-center gap-2">
                           <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                           <span className="font-semibold text-slate-700">{teacher.phone || '0912 345 678'}</span>
+                        </div>
+                        <div className="flex items-center justify-between pt-0.5">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <KeyRound className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            <span className="font-mono text-[11px] text-slate-600 truncate">
+                              MK: <strong className="text-slate-800 font-semibold">{teacher.password || 'starkids2026'}</strong>
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigator.clipboard?.writeText(
+                                `Tài khoản giáo viên StarKids:\n- Email: ${teacher.email}\n- Mật khẩu: ${teacher.password || 'starkids2026'}\n- Cổng đăng nhập: Chọn vai trò "Giáo viên phụ trách"`
+                              );
+                              showToast(`📋 Đã sao chép tài khoản & mật khẩu của ${teacher.name}!`);
+                            }}
+                            className="text-[10.5px] text-emerald-700 hover:text-emerald-800 font-bold hover:underline cursor-pointer ml-1 shrink-0 flex items-center gap-1"
+                            title="Sao chép thông tin đăng nhập"
+                          >
+                            <Copy className="w-2.5 h-2.5" />
+                            <span>Sao chép</span>
+                          </button>
                         </div>
                       </div>
 
@@ -1568,6 +1636,48 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                             </a>
                           </div>
                         </div>
+
+                        {/* Access Account Credentials Card for Student & Parent */}
+                        <div className="p-2.5 rounded-2xl bg-indigo-50/70 border border-indigo-100/90 text-xs space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10.5px] font-black uppercase text-indigo-950 flex items-center gap-1">
+                              <KeyRound className="w-3.5 h-3.5 text-indigo-600" />
+                              <span>Tài khoản đăng nhập</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenCredentials(student)}
+                              className="text-[11px] font-bold text-indigo-700 hover:text-indigo-900 hover:underline flex items-center gap-0.5 cursor-pointer"
+                            >
+                              Cấp / Đổi MK
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-2 gap-1.5 text-[11px]">
+                            <div className="truncate text-slate-600">
+                              <span className="font-bold text-slate-700">Bé: </span>
+                              <span className="font-mono text-slate-800">{student.email.split('@')[0]}</span>
+                            </div>
+                            <div className="truncate text-slate-600">
+                              <span className="font-bold text-slate-700">PH: </span>
+                              <span className="font-mono text-slate-800">{student.parentPhone || student.phone || '0988...'}</span>
+                            </div>
+                          </div>
+                          <div className="text-[10.5px] text-slate-500 flex items-center justify-between pt-1 border-t border-indigo-100 font-mono">
+                            <span>MK: <strong className="text-slate-800">{student.password || 'starkids2026'}</strong></span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleQuickCopyStudentParentCreds(student, studentClass);
+                              }}
+                              className="text-[10.5px] text-indigo-700 hover:underline font-bold flex items-center gap-1 cursor-pointer font-sans"
+                              title="Sao chép thông tin tài khoản gửi Zalo cho phụ huynh"
+                            >
+                              <Copy className="w-3 h-3" />
+                              <span>Gửi Zalo</span>
+                            </button>
+                          </div>
+                        </div>
                       </div>
 
                       {/* Performance Bar & Actions */}
@@ -1593,7 +1703,17 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                             className="flex-1 py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-xs cursor-pointer transition-all active:scale-98"
                           >
                             <GraduationCap className="w-4 h-4" />
-                            <span>Xem Chi Tiết Hồ Sơ</span>
+                            <span>Xem Chi Tiết</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleOpenCredentials(student)}
+                            title="Cấp quyền & đổi mật khẩu đăng nhập cho học sinh và phụ huynh"
+                            className="py-2.5 px-3 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 font-black text-xs flex items-center gap-1 transition-all cursor-pointer"
+                          >
+                            <KeyRound className="w-4 h-4 text-purple-600" />
+                            <span className="hidden sm:inline">Cấp Quyền</span>
                           </button>
 
                           {studentClass ? (
@@ -1789,6 +1909,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           classes={classes}
           attendanceRecords={attendanceRecords}
           submissions={submissions}
+          onOpenCredentialsModal={(student) => {
+            handleOpenCredentials(student);
+          }}
           onAwardStars={(studentId, stars, reason) => {
             onAwardStars?.(studentId, stars, reason);
             showToast(`⭐ Đã thưởng +${stars} sao cho học sinh!`);
@@ -1802,6 +1925,43 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             setSelectedStudentForDetail((prev) =>
               prev && prev.id === studentId ? { ...prev, classId: newClassId } : prev
             );
+          }}
+        />
+      )}
+
+      {/* MODAL: Cấp Quyền & Mật Khẩu Đăng Nhập Cho Học Sinh & Phụ Huynh */}
+      {selectedStudentForCredentials && (
+        <AccountCredentialsModal
+          isOpen={isCredentialsModalOpen}
+          onClose={() => {
+            setIsCredentialsModalOpen(false);
+            setSelectedStudentForCredentials(null);
+          }}
+          student={selectedStudentForCredentials}
+          assignedClass={classes.find((c) => c.id === selectedStudentForCredentials.classId)}
+          allUsers={allUsers}
+          onSaveCredentials={(studentId, studentData, parentData) => {
+            onUpdateUserCredentials?.(studentId, studentData, parentData);
+            showToast(
+              `🔐 Đã cấp quyền và lưu mật khẩu thành công cho bé ${selectedStudentForCredentials.name} & phụ huynh!`
+            );
+            // Update local state if currently viewing detail
+            if (selectedStudentForDetail && selectedStudentForDetail.id === studentId) {
+              setSelectedStudentForDetail((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      email: studentData.email,
+                      password: studentData.password,
+                      status: studentData.status,
+                      parentName: parentData.name,
+                      parentEmail: parentData.email,
+                      parentPhone: parentData.phone,
+                      parentPassword: parentData.password
+                    }
+                  : prev
+              );
+            }
           }}
         />
       )}

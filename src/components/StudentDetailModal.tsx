@@ -19,7 +19,8 @@ import {
   FileText,
   Printer,
   Home,
-  ShieldCheck
+  ShieldCheck,
+  KeyRound
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { User as UserType, ClassRoom, AttendanceRecord, HomeworkSubmission } from '../types';
@@ -34,6 +35,7 @@ interface StudentDetailModalProps {
   submissions: HomeworkSubmission[];
   onTransferClass?: (studentId: string, newClassId: string) => void;
   onAwardStars?: (studentId: string, starsToAdd: number, reason: string) => void;
+  onOpenCredentialsModal?: (student: UserType) => void;
 }
 
 export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
@@ -44,7 +46,8 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   attendanceRecords,
   submissions,
   onTransferClass,
-  onAwardStars
+  onAwardStars,
+  onOpenCredentialsModal
 }) => {
   const [selectedNewClassId, setSelectedNewClassId] = useState(student.classId || '');
   const [isTransferring, setIsTransferring] = useState(false);
@@ -184,7 +187,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
               Cấp độ: <strong className="text-indigo-600">{student.levelTitle || 'Starters Explorer'}</strong> • Ngày đăng ký: {student.registeredAt}
             </p>
 
-            <div className="pt-2 flex items-center gap-2">
+            <div className="pt-2 flex flex-wrap items-center gap-2">
               <button
                 onClick={() => setShowStarAward(!showStarAward)}
                 className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
@@ -199,6 +202,16 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                 <ArrowRightLeft className="w-3.5 h-3.5" />
                 <span>Chuyển Lớp Học</span>
               </button>
+              {onOpenCredentialsModal && (
+                <button
+                  type="button"
+                  onClick={() => onOpenCredentialsModal(student)}
+                  className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <KeyRound className="w-3.5 h-3.5" />
+                  <span>Cấp Quyền & Mật Khẩu</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -386,6 +399,56 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                 <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 <span>Ngày đăng ký: {student.registeredAt}</span>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Credentials Overview Card */}
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-50/90 to-purple-50/90 border border-indigo-200/80 space-y-3 shadow-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs">
+                <KeyRound className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-xs font-black uppercase tracking-wider text-indigo-950">
+                  Tài Khoản Đăng Nhập Hệ Thống (Học Sinh & Phụ Huynh)
+                </h4>
+                <p className="text-[11px] text-slate-500">
+                  Cấp quyền truy cập trực tiếp cho bé làm bài tập & phụ huynh theo dõi sổ liên lạc
+                </p>
+              </div>
+            </div>
+            {onOpenCredentialsModal && (
+              <button
+                type="button"
+                onClick={() => onOpenCredentialsModal(student)}
+                className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+                <span>Cấp / Đổi Mật Khẩu</span>
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div className="p-3 bg-white rounded-xl border border-indigo-100 space-y-1 shadow-2xs">
+              <span className="text-[10.5px] font-black text-indigo-700 uppercase block">🎒 Cổng Học Sinh (Bé)</span>
+              <p className="text-slate-600 truncate">
+                Tên đăng nhập: <strong className="font-mono text-slate-900">{student.email}</strong>
+              </p>
+              <p className="text-slate-600">
+                Mật khẩu: <strong className="font-mono text-indigo-700">{student.password || 'starkids2026'}</strong>
+              </p>
+            </div>
+            <div className="p-3 bg-white rounded-xl border border-purple-100 space-y-1 shadow-2xs">
+              <span className="text-[10.5px] font-black text-purple-700 uppercase block">👨‍👩‍👧 Cổng Phụ Huynh (Ba/Mẹ)</span>
+              <p className="text-slate-600 truncate">
+                Tên đăng nhập: <strong className="font-mono text-slate-900">{student.parentEmail || student.parentPhone || student.phone || 'Chưa thiết lập'}</strong>
+              </p>
+              <p className="text-slate-600">
+                Mật khẩu: <strong className="font-mono text-purple-700">{student.parentPassword || 'starkids2026'}</strong>
+              </p>
             </div>
           </div>
         </div>

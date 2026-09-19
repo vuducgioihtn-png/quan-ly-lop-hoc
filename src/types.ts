@@ -11,6 +11,7 @@ export interface User {
   avatar: string;
   role: UserRole;
   email: string;
+  password?: string;
   phone?: string;
   grade?: GradeLevel;
   gradeLabel?: string;
@@ -20,6 +21,8 @@ export interface User {
   studentId?: string; // For parent account linked to student
   parentName?: string;
   parentPhone?: string;
+  parentEmail?: string;
+  parentPassword?: string;
   parentRelationship?: 'Ba' | 'Mẹ' | 'Người giám hộ' | string;
   birthDate?: string;
   schoolName?: string;
