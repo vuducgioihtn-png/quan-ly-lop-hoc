@@ -22,7 +22,10 @@ import {
   loadMaterials,
   saveMaterials,
   loadNotifications,
-  saveNotifications
+  saveNotifications,
+  fetchServerState,
+  syncServerState,
+  AppDatabaseState
 } from './utils/storage';
 import {
   User,
@@ -43,6 +46,7 @@ import { RegisterModal } from './components/RegisterModal';
 import { InteractiveHomeworkModal } from './components/InteractiveHomeworkModal';
 import { MaterialViewerModal } from './components/MaterialViewerModal';
 import { NotificationsModal } from './components/NotificationsModal';
+import { DataSyncModal } from './components/DataSyncModal';
 import { Sparkles, Heart, HelpCircle, ShieldCheck } from 'lucide-react';
 
 export default function App() {
@@ -105,6 +109,146 @@ export default function App() {
   useEffect(() => {
     saveNotifications(notifications);
   }, [notifications]);
+
+  // Server Synchronization States
+  const [syncStatus, setSyncStatus] = useState<'synced' | 'syncing' | 'error'>('synced');
+  const [lastSyncedTime, setLastSyncedTime] = useState<string | null>(null);
+  const [isDataSyncOpen, setIsDataSyncOpen] = useState(false);
+  const [hasInitializedFromServer, setHasInitializedFromServer] = useState(false);
+
+  // 1. Fetch synchronized database from server on startup
+  useEffect(() => {
+    let isMounted = true;
+    async function initSync() {
+      setSyncStatus('syncing');
+      const serverData = await fetchServerState();
+      if (isMounted) {
+        if (serverData && Array.isArray(serverData.users) && serverData.users.length > 0) {
+          setUsers(serverData.users);
+          if (Array.isArray(serverData.classes)) setClasses(serverData.classes);
+          if (Array.isArray(serverData.attendance)) setAttendance(serverData.attendance);
+          if (Array.isArray(serverData.homework)) setHomework(serverData.homework);
+          if (Array.isArray(serverData.submissions)) setSubmissions(serverData.submissions);
+          if (Array.isArray(serverData.materials)) setMaterials(serverData.materials);
+          if (Array.isArray(serverData.notifications)) setNotifications(serverData.notifications);
+          setLastSyncedTime(new Date().toLocaleTimeString('vi-VN'));
+          setSyncStatus('synced');
+        } else {
+          // If server data was empty, initialize server with current local data
+          await syncServerState({
+            users,
+            classes,
+            attendance,
+            homework,
+            submissions,
+            materials,
+            notifications
+          });
+          setSyncStatus('synced');
+          setLastSyncedTime(new Date().toLocaleTimeString('vi-VN'));
+        }
+        setHasInitializedFromServer(true);
+      }
+    }
+    initSync();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // 2. Debounced auto-sync to server on any state mutation
+  useEffect(() => {
+    if (!hasInitializedFromServer) return;
+    const timer = setTimeout(async () => {
+      setSyncStatus('syncing');
+      const ok = await syncServerState({
+        users,
+        classes,
+        attendance,
+        homework,
+        submissions,
+        materials,
+        notifications
+      });
+      if (ok) {
+        setSyncStatus('synced');
+        setLastSyncedTime(new Date().toLocaleTimeString('vi-VN'));
+      } else {
+        setSyncStatus('error');
+      }
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [users, classes, attendance, homework, submissions, materials, notifications, hasInitializedFromServer]);
+
+  const handleForceSync = async () => {
+    setSyncStatus('syncing');
+    const ok = await syncServerState({
+      users,
+      classes,
+      attendance,
+      homework,
+      submissions,
+      materials,
+      notifications
+    });
+    if (ok) {
+      setSyncStatus('synced');
+      setLastSyncedTime(new Date().toLocaleTimeString('vi-VN'));
+    } else {
+      setSyncStatus('error');
+      throw new Error('Không thể kết nối máy chủ');
+    }
+  };
+
+  const handleRefreshFromServer = async () => {
+    setSyncStatus('syncing');
+    const serverData = await fetchServerState();
+    if (serverData && Array.isArray(serverData.users)) {
+      setUsers(serverData.users);
+      if (Array.isArray(serverData.classes)) setClasses(serverData.classes);
+      if (Array.isArray(serverData.attendance)) setAttendance(serverData.attendance);
+      if (Array.isArray(serverData.homework)) setHomework(serverData.homework);
+      if (Array.isArray(serverData.submissions)) setSubmissions(serverData.submissions);
+      if (Array.isArray(serverData.materials)) setMaterials(serverData.materials);
+      if (Array.isArray(serverData.notifications)) setNotifications(serverData.notifications);
+      setSyncStatus('synced');
+      setLastSyncedTime(new Date().toLocaleTimeString('vi-VN'));
+    } else {
+      setSyncStatus('error');
+      throw new Error('Máy chủ chưa phản hồi dữ liệu');
+    }
+  };
+
+  const handleApplyImportedState = (imported: AppDatabaseState) => {
+    setUsers(imported.users);
+    setClasses(imported.classes);
+    setAttendance(imported.attendance);
+    setHomework(imported.homework);
+    setSubmissions(imported.submissions);
+    setMaterials(imported.materials);
+    setNotifications(imported.notifications);
+    saveUsers(imported.users);
+    saveClasses(imported.classes);
+    saveAttendance(imported.attendance);
+    saveHomework(imported.homework);
+    saveSubmissions(imported.submissions);
+    saveMaterials(imported.materials);
+    saveNotifications(imported.notifications);
+    syncServerState(imported).then(() => {
+      setSyncStatus('synced');
+      setLastSyncedTime(new Date().toLocaleTimeString('vi-VN'));
+    });
+  };
+
+  const handleResetToDefault = async () => {
+    const res = await fetch('/api/data/reset', { method: 'POST' });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.state) {
+        handleApplyImportedState(data.state);
+      }
+    }
+  };
 
   const [isAdminModeActive, setIsAdminModeActive] = useState<boolean>(false);
 
@@ -883,6 +1027,8 @@ export default function App() {
             submissions={submissions}
             activeTab={adminTab}
             onTabChange={setAdminTab}
+            syncStatus={syncStatus}
+            onOpenDataSync={() => setIsDataSyncOpen(true)}
             onApproveStudent={handleApproveStudent}
             onBroadcastNotification={handleBroadcastNotification}
             onCreateClass={handleCreateClass}
@@ -1029,6 +1175,28 @@ export default function App() {
           setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
         }}
         onSendTestReminder={handleSendTestReminder}
+      />
+
+      {/* 5. Cloud Database Sync & Backup Modal */}
+      <DataSyncModal
+        isOpen={isDataSyncOpen}
+        onClose={() => setIsDataSyncOpen(false)}
+        currentState={{
+          users,
+          classes,
+          attendance,
+          homework,
+          submissions,
+          materials,
+          notifications,
+          lastUpdated: lastSyncedTime || undefined
+        }}
+        syncStatus={syncStatus}
+        lastSyncedTime={lastSyncedTime}
+        onForceSync={handleForceSync}
+        onRefreshFromServer={handleRefreshFromServer}
+        onApplyImportedState={handleApplyImportedState}
+        onResetToDefault={handleResetToDefault}
       />
     </div>
   );

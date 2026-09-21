@@ -103,6 +103,8 @@ interface AdminPortalProps {
   onOpenCreateClassModal?: () => void;
   activeTab?: 'overview' | 'teachers' | 'approvals' | 'classes' | 'students';
   onTabChange?: (tab: 'overview' | 'teachers' | 'approvals' | 'classes' | 'students') => void;
+  syncStatus?: 'synced' | 'syncing' | 'error';
+  onOpenDataSync?: () => void;
 }
 
 export const AdminPortal: React.FC<AdminPortalProps> = ({
@@ -128,7 +130,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   onBroadcastNotification,
   onOpenCreateClassModal,
   activeTab: controlledTab,
-  onTabChange
+  onTabChange,
+  syncStatus = 'synced',
+  onOpenDataSync
 }) => {
   const [internalTab, setInternalTab] = useState<'overview' | 'teachers' | 'approvals' | 'classes' | 'students'>('overview');
   const activeTab = controlledTab ?? internalTab;
@@ -574,6 +578,41 @@ Học sinh: ${student.name} ${student.englishName ? `(${student.englishName})` :
                   </div>
                 );
               })}
+            </div>
+          </div>
+
+          {/* Secure Cloud Data & Personal Privacy Assurance Card */}
+          <div className="bg-gradient-to-r from-slate-900 to-indigo-950 rounded-3xl p-6 text-white border border-slate-800 shadow-lg space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-400 shrink-0">
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-black text-white text-base sm:text-lg font-heading">
+                      Bảo Mật Dữ Liệu & Tự Động Lưu Trữ Đám Mây
+                    </h4>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      Tự động lưu ngầm
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                    Hồ sơ giáo viên (bao gồm Thầy Giới), phân công lớp học và thông tin học sinh được hệ thống tự động đồng bộ liên tục ngầm lên máy chủ trung tâm. Thông tin cá nhân được bảo mật nghiêm ngặt và bảo toàn trên mọi thiết bị và liên kết xuất bản.
+                  </p>
+                </div>
+              </div>
+
+              {onOpenDataSync && (
+                <button
+                  onClick={onOpenDataSync}
+                  className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center justify-center gap-2"
+                >
+                  <KeyRound className="w-3.5 h-3.5 text-indigo-300" />
+                  <span>Quản Trị Sao Lưu (Admin)</span>
+                </button>
+              )}
             </div>
           </div>
         </div>

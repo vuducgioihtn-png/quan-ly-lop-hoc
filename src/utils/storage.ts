@@ -136,6 +136,119 @@ export function saveNotifications(notifications: AppNotification[]): void {
   setStoredItem(STORAGE_KEYS.NOTIFICATIONS, notifications);
 }
 
+export interface AppDatabaseState {
+  users: User[];
+  classes: ClassRoom[];
+  attendance: AttendanceRecord[];
+  homework: Homework[];
+  submissions: HomeworkSubmission[];
+  materials: StudyMaterial[];
+  notifications: AppNotification[];
+  lastUpdated?: string;
+}
+
+/**
+ * Fetch synchronized database state from server
+ */
+export async function fetchServerState(): Promise<AppDatabaseState | null> {
+  try {
+    const res = await fetch('/api/data');
+    if (!res.ok) return null;
+    const data: AppDatabaseState = await res.json();
+    if (data && Array.isArray(data.users) && data.users.length > 0) {
+      // Keep localStorage in sync as well
+      saveUsers(data.users);
+      if (Array.isArray(data.classes)) saveClasses(data.classes);
+      if (Array.isArray(data.attendance)) saveAttendance(data.attendance);
+      if (Array.isArray(data.homework)) saveHomework(data.homework);
+      if (Array.isArray(data.submissions)) saveSubmissions(data.submissions);
+      if (Array.isArray(data.materials)) saveMaterials(data.materials);
+      if (Array.isArray(data.notifications)) saveNotifications(data.notifications);
+      return data;
+    }
+    return null;
+  } catch (err) {
+    console.warn('Network sync error, continuing with local storage:', err);
+    return null;
+  }
+}
+
+/**
+ * Push updated database state to server
+ */
+export async function syncServerState(state: Partial<AppDatabaseState>): Promise<boolean> {
+  try {
+    const res = await fetch('/api/data', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(state)
+    });
+    return res.ok;
+  } catch (err) {
+    console.warn('Failed to sync state to server:', err);
+    return false;
+  }
+}
+
+/**
+ * Export backup as JSON file download (Sanitizes passwords to protect personal privacy)
+ */
+export function exportDatabaseBackup(state: AppDatabaseState): void {
+  try {
+    // Sanitize sensitive credentials to protect personal data privacy
+    const sanitizedState = {
+      ...state,
+      users: state.users.map((u) => ({
+        ...u,
+        password: u.password ? '●●●●●●●●' : undefined
+      })),
+      exportedAt: new Date().toISOString(),
+      securityNotice: 'Tài liệu quản trị trường học nội bộ - Tuân thủ bảo mật thông tin cá nhân học sinh & giáo viên'
+    };
+
+    const jsonStr = JSON.stringify(sanitizedState, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const dateStr = new Date().toISOString().split('T')[0];
+    a.href = url;
+    a.download = `StarKids_Security_Backup_${dateStr}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    console.error('Failed to export backup', e);
+  }
+}
+
+/**
+ * Validate and parse uploaded JSON backup
+ */
+export function importDatabaseBackup(jsonString: string): AppDatabaseState | null {
+  try {
+    const parsed = JSON.parse(jsonString);
+    if (!parsed || !Array.isArray(parsed.users)) {
+      throw new Error('Dữ liệu không hợp lệ: Thiếu danh sách người dùng (users)');
+    }
+    return {
+      users: parsed.users,
+      classes: Array.isArray(parsed.classes) ? parsed.classes : [],
+      attendance: Array.isArray(parsed.attendance) ? parsed.attendance : [],
+      homework: Array.isArray(parsed.homework) ? parsed.homework : [],
+      submissions: Array.isArray(parsed.submissions) ? parsed.submissions : [],
+      materials: Array.isArray(parsed.materials) ? parsed.materials : [],
+      notifications: Array.isArray(parsed.notifications) ? parsed.notifications : [],
+      lastUpdated: new Date().toISOString()
+    };
+  } catch (e) {
+    console.error('Invalid JSON backup file', e);
+    return null;
+  }
+}
+
 /**
  * Text-to-speech helper for English pronunciation
  */
