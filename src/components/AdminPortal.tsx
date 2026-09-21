@@ -35,7 +35,8 @@ import {
   Copy,
   FileText,
   RotateCcw,
-  Crown
+  Crown,
+  Download
 } from 'lucide-react';
 import { User, ClassRoom, AttendanceRecord, AppNotification, HomeworkSubmission } from '../types';
 import { TeacherModal } from './TeacherModal';
@@ -604,15 +605,26 @@ Học sinh: ${student.name} ${student.englishName ? `(${student.englishName})` :
                 </div>
               </div>
 
-              {onOpenDataSync && (
-                <button
-                  onClick={onOpenDataSync}
-                  className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center justify-center gap-2"
+              <div className="flex items-center gap-2 flex-wrap shrink-0">
+                <a
+                  href="/api/database.json"
+                  download="database.json"
+                  className="px-3.5 py-2.5 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white font-bold text-xs transition-all cursor-pointer whitespace-nowrap flex items-center justify-center gap-1.5 shadow-xs decoration-0"
+                  title="Tải file database.json để cập nhật/commit lên GitHub"
                 >
-                  <KeyRound className="w-3.5 h-3.5 text-indigo-300" />
-                  <span>Quản Trị Sao Lưu (Admin)</span>
-                </button>
-              )}
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Tải database.json (GitHub)</span>
+                </a>
+                {onOpenDataSync && (
+                  <button
+                    onClick={onOpenDataSync}
+                    className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs transition-all cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
+                  >
+                    <KeyRound className="w-3.5 h-3.5 text-indigo-300" />
+                    <span>Quản Trị Sao Lưu (Admin)</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

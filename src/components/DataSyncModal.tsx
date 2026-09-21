@@ -285,6 +285,31 @@ export const DataSyncModal: React.FC<DataSyncModalProps> = ({
                 </button>
               </div>
 
+              <div className="p-3.5 rounded-2xl bg-slate-900 text-white space-y-2 border border-slate-700">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Server className="w-4 h-4 text-emerald-400" />
+                    <span className="text-xs font-black">Cơ Sở Dữ Liệu Đồng Bộ GitHub (database.json)</span>
+                  </div>
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-md border border-emerald-500/30">
+                    Sẵn Sàng GitHub
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  File <code className="text-amber-300 font-mono font-bold bg-white/10 px-1 py-0.5 rounded">database.json</code> được lưu trực tiếp tại thư mục gốc dự án. Mọi thay đổi về giáo viên, học sinh, điểm danh và bài tập đều được tự động lưu vào file này. Bạn có thể tải file hoặc commit lên GitHub để đồng bộ trên mọi trình duyệt.
+                </p>
+                <div className="pt-1 flex flex-wrap gap-2">
+                  <a
+                    href="/api/database.json"
+                    download="database.json"
+                    className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer text-center decoration-0"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Tải File database.json Cho GitHub</span>
+                  </a>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-2.5">
                 <button
                   onClick={handleExport}

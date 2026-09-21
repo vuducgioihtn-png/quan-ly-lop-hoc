@@ -17,8 +17,9 @@ const PORT = 3000;
 
 app.use(express.json({ limit: '25mb' }));
 
+const ROOT_DB_FILE = path.join(process.cwd(), 'database.json');
 const DATA_DIR = path.join(process.cwd(), 'data');
-const DB_FILE = path.join(DATA_DIR, 'db.json');
+const DATA_DB_FILE = path.join(DATA_DIR, 'db.json');
 
 function getInitialDbState() {
   return {
@@ -38,34 +39,46 @@ let dbState: any = null;
 function loadDb() {
   if (dbState) return dbState;
 
-  if (fs.existsSync(DB_FILE)) {
-    try {
-      const content = fs.readFileSync(DB_FILE, 'utf-8');
-      dbState = JSON.parse(content);
-      // Ensure all initial teachers are in dbState.users
-      if (Array.isArray(dbState.users)) {
-        const initialTeachers = INITIAL_USERS.filter((u) => u.role === 'teacher');
-        for (const t of initialTeachers) {
-          if (!dbState.users.some((u: any) => u.id === t.id || u.email === t.email)) {
-            dbState.users.push(t);
+  // Try loading from database.json at root first (primary for GitHub sync)
+  const candidateFiles = [ROOT_DB_FILE, DATA_DB_FILE];
+  for (const file of candidateFiles) {
+    if (fs.existsSync(file)) {
+      try {
+        const content = fs.readFileSync(file, 'utf-8');
+        const parsed = JSON.parse(content);
+        if (parsed && typeof parsed === 'object' && Array.isArray(parsed.users)) {
+          dbState = parsed;
+          // Ensure all initial teachers are in dbState.users
+          const initialTeachers = INITIAL_USERS.filter((u) => u.role === 'teacher');
+          for (const t of initialTeachers) {
+            if (!dbState.users.some((u: any) => u.id === t.id || u.email === t.email)) {
+              dbState.users.push(t);
+            }
           }
+          break;
         }
+      } catch (e) {
+        console.error(`Failed to parse ${file}, trying next candidate...`, e);
       }
-      return dbState;
-    } catch (e) {
-      console.error('Failed to parse db.json, falling back to initial data', e);
     }
   }
 
-  dbState = getInitialDbState();
+  if (!dbState) {
+    dbState = getInitialDbState();
+  }
+
+  // Ensure both files exist and are populated
   try {
+    const formatted = JSON.stringify(dbState, null, 2);
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
     }
-    fs.writeFileSync(DB_FILE, JSON.stringify(dbState, null, 2), 'utf-8');
+    fs.writeFileSync(DATA_DB_FILE, formatted, 'utf-8');
+    fs.writeFileSync(ROOT_DB_FILE, formatted, 'utf-8');
   } catch (e) {
-    console.error('Failed to write initial db.json', e);
+    console.error('Failed to sync initial database files', e);
   }
+
   return dbState;
 }
 
@@ -77,13 +90,16 @@ function persistDb(data: any) {
     lastUpdated: new Date().toISOString()
   };
 
+  const formatted = JSON.stringify(dbState, null, 2);
+
   try {
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
     }
-    fs.writeFileSync(DB_FILE, JSON.stringify(dbState, null, 2), 'utf-8');
+    fs.writeFileSync(DATA_DB_FILE, formatted, 'utf-8');
+    fs.writeFileSync(ROOT_DB_FILE, formatted, 'utf-8');
   } catch (e) {
-    console.error('Failed to persist db.json', e);
+    console.error('Failed to persist database files', e);
   }
 
   return dbState;
@@ -99,6 +115,21 @@ app.get('/api/data', (_req, res) => {
   res.json(state);
 });
 
+// Direct download of database.json for GitHub commit or offline backup
+app.get('/api/database.json', (_req, res) => {
+  const state = loadDb();
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="database.json"');
+  res.send(JSON.stringify(state, null, 2));
+});
+
+app.get('/api/data/download', (_req, res) => {
+  const state = loadDb();
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="database.json"');
+  res.send(JSON.stringify(state, null, 2));
+});
+
 app.post('/api/data', (req, res) => {
   const incoming = req.body;
   if (!incoming || typeof incoming !== 'object') {
@@ -111,10 +142,12 @@ app.post('/api/data', (req, res) => {
 
 app.post('/api/data/reset', (_req, res) => {
   dbState = getInitialDbState();
+  const formatted = JSON.stringify(dbState, null, 2);
   try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(dbState, null, 2), 'utf-8');
+    fs.writeFileSync(DATA_DB_FILE, formatted, 'utf-8');
+    fs.writeFileSync(ROOT_DB_FILE, formatted, 'utf-8');
   } catch (e) {
-    console.error('Failed to reset db.json', e);
+    console.error('Failed to reset database files', e);
   }
   res.json({ success: true, lastUpdated: dbState.lastUpdated, state: dbState });
 });
