@@ -137,6 +137,110 @@ export function saveNotifications(notifications: AppNotification[]): void {
 }
 
 /**
+ * Server Synchronization API
+ */
+export interface FullDatabasePayload {
+  users?: User[];
+  classes?: ClassRoom[];
+  attendance?: AttendanceRecord[];
+  homework?: Homework[];
+  submissions?: HomeworkSubmission[];
+  materials?: StudyMaterial[];
+  notifications?: AppNotification[];
+  lastUpdated?: string;
+}
+
+export async function fetchServerData(): Promise<FullDatabasePayload | null> {
+  try {
+    const res = await fetch('/api/data');
+    if (!res.ok) return null;
+    const json = await res.json();
+    if (json && json.success && json.data) {
+      const data: FullDatabasePayload = json.data;
+      if (Array.isArray(data.users) && data.users.length > 0) {
+        saveUsers(data.users);
+      }
+      if (Array.isArray(data.classes)) {
+        saveClasses(data.classes);
+      }
+      if (Array.isArray(data.attendance)) {
+        saveAttendance(data.attendance);
+      }
+      if (Array.isArray(data.homework)) {
+        saveHomework(data.homework);
+      }
+      if (Array.isArray(data.submissions)) {
+        saveSubmissions(data.submissions);
+      }
+      if (Array.isArray(data.materials)) {
+        saveMaterials(data.materials);
+      }
+      if (Array.isArray(data.notifications)) {
+        saveNotifications(data.notifications);
+      }
+      return data;
+    }
+  } catch (err) {
+    console.info('Server sync offline or static mode, using local storage fallback:', err);
+  }
+  return null;
+}
+
+let syncTimeout: any = null;
+export function syncDataToServer(payload: FullDatabasePayload): void {
+  if (syncTimeout) {
+    clearTimeout(syncTimeout);
+  }
+  syncTimeout = setTimeout(async () => {
+    try {
+      await fetch('/api/data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch (err) {
+      console.warn('Failed to sync data to server:', err);
+    }
+  }, 400);
+}
+
+export async function restoreDatabaseToServer(fullData: FullDatabasePayload): Promise<boolean> {
+  try {
+    const res = await fetch('/api/restore-db', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(fullData)
+    });
+    if (res.ok) {
+      if (fullData.users) saveUsers(fullData.users);
+      if (fullData.classes) saveClasses(fullData.classes);
+      if (fullData.attendance) saveAttendance(fullData.attendance);
+      if (fullData.homework) saveHomework(fullData.homework);
+      if (fullData.submissions) saveSubmissions(fullData.submissions);
+      if (fullData.materials) saveMaterials(fullData.materials);
+      if (fullData.notifications) saveNotifications(fullData.notifications);
+      return true;
+    }
+  } catch (err) {
+    console.error('Failed to restore database to server:', err);
+  }
+  return false;
+}
+
+export function downloadDatabaseJson(data: FullDatabasePayload): void {
+  const jsonStr = JSON.stringify(data, null, 2);
+  const blob = new Blob([jsonStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `starkids_database_backup_${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/**
  * Text-to-speech helper for English pronunciation
  */
 export function playEnglishPronunciation(text: string): void {

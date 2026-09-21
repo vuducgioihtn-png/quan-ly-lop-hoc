@@ -35,7 +35,8 @@ import {
   Copy,
   FileText,
   RotateCcw,
-  Crown
+  Crown,
+  Server
 } from 'lucide-react';
 import { User, ClassRoom, AttendanceRecord, AppNotification, HomeworkSubmission } from '../types';
 import { TeacherModal } from './TeacherModal';
@@ -103,6 +104,8 @@ interface AdminPortalProps {
   onOpenCreateClassModal?: () => void;
   activeTab?: 'overview' | 'teachers' | 'approvals' | 'classes' | 'students';
   onTabChange?: (tab: 'overview' | 'teachers' | 'approvals' | 'classes' | 'students') => void;
+  isServerSynced?: boolean;
+  onOpenSyncModal?: () => void;
 }
 
 export const AdminPortal: React.FC<AdminPortalProps> = ({
@@ -128,7 +131,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   onBroadcastNotification,
   onOpenCreateClassModal,
   activeTab: controlledTab,
-  onTabChange
+  onTabChange,
+  isServerSynced = true,
+  onOpenSyncModal
 }) => {
   const [internalTab, setInternalTab] = useState<'overview' | 'teachers' | 'approvals' | 'classes' | 'students'>('overview');
   const activeTab = controlledTab ?? internalTab;
@@ -337,6 +342,17 @@ Học sinh: ${student.name} ${student.englishName ? `(${student.englishName})` :
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
+            <button
+              type="button"
+              onClick={onOpenSyncModal}
+              className="px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-black text-xs sm:text-sm shadow-md transition-all active:scale-98 cursor-pointer flex items-center gap-2"
+              title="Xem trạng thái đồng bộ đa trình duyệt và sao lưu tệp dữ liệu GitHub"
+            >
+              <Server className="w-4 h-4 text-emerald-300" />
+              <span>Đồng Bộ & Sao Lưu GitHub</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            </button>
+
             <button
               onClick={() => {
                 onBroadcastNotification(
@@ -597,13 +613,25 @@ Học sinh: ${student.name} ${student.englishName ? `(${student.englishName})` :
               </p>
             </div>
 
-            <button
-              onClick={() => setIsAddTeacherOpen(true)}
-              className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs sm:text-sm shadow-md shadow-emerald-200 transition-all active:scale-98 cursor-pointer flex items-center justify-center gap-2 shrink-0"
-            >
-              <Plus className="w-4 h-4" />
-              <span>+ Thêm Giáo Viên Mới</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onOpenSyncModal}
+                className="px-3.5 py-2.5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                title="Đồng bộ máy chủ & Sao lưu dữ liệu giáo viên"
+              >
+                <Server className="w-3.5 h-3.5 text-purple-600" />
+                <span className="hidden sm:inline">Sao Lưu / Đồng Bộ</span>
+              </button>
+
+              <button
+                onClick={() => setIsAddTeacherOpen(true)}
+                className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs sm:text-sm shadow-md shadow-emerald-200 transition-all active:scale-98 cursor-pointer flex items-center justify-center gap-2 shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ Thêm Giáo Viên Mới</span>
+              </button>
+            </div>
           </div>
 
           {/* Teacher Stats KPI row */}
@@ -1408,6 +1436,16 @@ Học sinh: ${student.name} ${student.englishName ? `(${student.englishName})` :
             </div>
 
             <div className="flex items-center gap-2.5 flex-wrap">
+              <button
+                type="button"
+                onClick={onOpenSyncModal}
+                className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                title="Đồng bộ máy chủ & Sao lưu danh sách học sinh"
+              >
+                <Server className="w-3.5 h-3.5 text-purple-600" />
+                <span className="hidden sm:inline">Sao Lưu / Đồng Bộ</span>
+              </button>
+
               <button
                 onClick={() => setIsCreateStudentModalOpen(true)}
                 className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-black text-xs flex items-center gap-1.5 shadow-xs cursor-pointer transition-all active:scale-95"
