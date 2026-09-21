@@ -28,8 +28,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   allUsers
 }) => {
   const [selectedRole, setSelectedRole] = useState<UserRole>('teacher');
-  const [email, setEmail] = useState('emily.teacher@starkids.edu.vn');
-  const [password, setPassword] = useState('starkids2026');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -135,19 +135,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const handleRoleSelect = (role: UserRole) => {
     setSelectedRole(role);
     setError(null);
-    if (role === 'admin') {
-      setEmail(adminUser.email);
-      setPassword(adminUser.password || 'starkids2026');
-    } else if (role === 'teacher') {
-      setEmail(teacherUser.email);
-      setPassword(teacherUser.password || 'starkids2026');
-    } else if (role === 'student') {
-      setEmail(studentTommy.email);
-      setPassword(studentTommy.password || 'starkids2026');
-    } else if (role === 'parent') {
-      setEmail(parentUser.email);
-      setPassword(parentUser.password || 'starkids2026');
-    }
+    setEmail('');
+    setPassword('');
   };
 
   const handleFormSubmit = (e: React.FormEvent) => {
@@ -228,11 +217,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       return;
     }
 
-    // Fallback to role default
-    if (selectedRole === 'admin') onLogin(adminUser);
-    else if (selectedRole === 'teacher') onLogin(teacherUser);
-    else if (selectedRole === 'student') onLogin(studentTommy);
-    else if (selectedRole === 'parent') onLogin(parentUser);
+    setError('Thông tin tài khoản hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại.');
   };
 
   return (
@@ -298,7 +283,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   <ShieldCheck className="w-4 h-4" />
                 </div>
                 <span className="text-xs font-black">Giáo Viên</span>
-                <span className="text-[10px] text-slate-500 mt-0.5">Cô Emily</span>
+                <span className="text-[10px] text-slate-500 mt-0.5">Thầy cô giảng dạy</span>
               </button>
 
               {/* Student Button */}
@@ -317,7 +302,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   <GraduationCap className="w-4 h-4" />
                 </div>
                 <span className="text-xs font-black">Học Sinh</span>
-                <span className="text-[10px] text-slate-500 mt-0.5">Bé Tommy</span>
+                <span className="text-[10px] text-slate-500 mt-0.5">Học viên StarKids</span>
               </button>
 
               {/* Parent Button */}
@@ -336,258 +321,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   <Users className="w-4 h-4" />
                 </div>
                 <span className="text-xs font-black">Phụ Huynh</span>
-                <span className="text-[10px] text-slate-500 mt-0.5">Mẹ Tommy</span>
+                <span className="text-[10px] text-slate-500 mt-0.5">Gia đình & Liên lạc</span>
               </button>
             </div>
           </div>
-
-          {/* Selected Account Preview */}
-          <div className="mb-6 p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img
-                src={
-                  selectedRole === 'admin'
-                    ? adminUser.avatar
-                    : selectedRole === 'teacher'
-                    ? teacherUser.avatar
-                    : selectedRole === 'student'
-                    ? studentTommy.avatar
-                    : parentUser.avatar
-                }
-                alt="Avatar"
-                className="w-11 h-11 rounded-xl object-cover ring-2 ring-white shadow-xs"
-                referrerPolicy="no-referrer"
-              />
-              <div>
-                <p className="text-xs font-extrabold text-slate-800">
-                  {selectedRole === 'admin'
-                    ? adminUser.name
-                    : selectedRole === 'teacher'
-                    ? teacherUser.name
-                    : selectedRole === 'student'
-                    ? `${studentTommy.name} (${studentTommy.englishName})`
-                    : parentUser.name}
-                </p>
-                <p className="text-[11px] text-slate-500 flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                  <span>
-                    {selectedRole === 'admin' && 'Tài khoản Quản trị viên • Toàn quyền hệ thống'}
-                    {selectedRole === 'teacher' && 'Giáo viên phụ trách • Điểm danh, Chấm bài'}
-                    {selectedRole === 'student' && 'Học sinh Lớp 3 • Làm bài tập, Tích lũy sao'}
-                    {selectedRole === 'parent' && 'Phụ huynh học sinh • Sổ liên lạc, Học phí'}
-                  </span>
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                if (selectedRole === 'admin') onLogin(adminUser);
-                else if (selectedRole === 'teacher') onLogin(teacherUser);
-                else if (selectedRole === 'student') onLogin(studentTommy);
-                else if (selectedRole === 'parent') onLogin(parentUser);
-              }}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-extrabold shadow-xs transition-all active:scale-95 cursor-pointer whitespace-nowrap"
-            >
-              <span>Vào Ngay</span>
-              <ArrowRight className="w-3 h-3" />
-            </button>
-          </div>
-
-          {/* Student Admin Selector if students have been granted admin privileges */}
-          {selectedRole === 'admin' && allUsers.some((u) => u.isAdmin) && (
-            <div className="mb-5 p-3.5 bg-purple-50/70 rounded-2xl border border-purple-200/80">
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-[11px] font-bold text-purple-950 flex items-center gap-1.5">
-                  <Crown className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Học sinh được cấp đặc quyền Quản trị viên (Admin):</span>
-                </label>
-                <span className="text-[10px] text-purple-700 font-black">
-                  {allUsers.filter((u) => u.isAdmin).length} tài khoản
-                </span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {allUsers
-                  .filter((u) => u.isAdmin)
-                  .map((s) => {
-                    const isSelected = email.toLowerCase() === s.email.toLowerCase();
-                    return (
-                      <button
-                        key={s.id}
-                        type="button"
-                        onClick={() => {
-                          setEmail(s.email);
-                          setPassword(s.password || 'starkids2026');
-                          setError(null);
-                        }}
-                        className={`p-2 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
-                          isSelected
-                            ? 'bg-white border-purple-500 text-purple-950 font-bold shadow-xs ring-2 ring-purple-500/20'
-                            : 'bg-white/80 border-slate-200 text-slate-700 hover:bg-white'
-                        }`}
-                      >
-                        <img
-                          src={s.avatar}
-                          alt={s.name}
-                          className="w-7 h-7 rounded-lg object-cover ring-1 ring-purple-300 shrink-0"
-                          referrerPolicy="no-referrer"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-bold truncate leading-tight flex items-center gap-1">
-                            <span>{s.name}</span>
-                            <Crown className="w-3 h-3 text-amber-500 shrink-0" />
-                          </p>
-                          <p className="text-[10px] text-purple-700 font-bold truncate">
-                            {s.adminRoleTitle || 'Học sinh kiêm Admin'}
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  })}
-              </div>
-            </div>
-          )}
-
-          {/* Teacher Selector if multiple teachers exist */}
-          {selectedRole === 'teacher' && allTeacherUsers.length > 1 && (
-            <div className="mb-5 p-3 bg-emerald-50/60 rounded-2xl border border-emerald-200/80">
-              <label className="block text-[11px] font-bold text-emerald-900 mb-2">
-                Chọn tài khoản giáo viên để thử nghiệm:
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {allTeacherUsers.map((t) => {
-                  const isSelected = email.toLowerCase() === t.email.toLowerCase();
-                  return (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => {
-                        setEmail(t.email);
-                        setPassword(t.password || 'starkids2026');
-                        setError(null);
-                      }}
-                      className={`p-2 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
-                        isSelected
-                          ? 'bg-white border-emerald-500 text-emerald-950 font-bold shadow-xs ring-2 ring-emerald-500/20'
-                          : 'bg-white/80 border-slate-200 text-slate-700 hover:bg-white'
-                      }`}
-                    >
-                      <img
-                        src={t.avatar}
-                        alt={t.name}
-                        className="w-7 h-7 rounded-lg object-cover ring-1 ring-slate-200 shrink-0"
-                        referrerPolicy="no-referrer"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold truncate leading-tight">{t.name}</p>
-                        <p className="text-[10px] text-slate-500 truncate">{t.email}</p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Student Selector */}
-          {selectedRole === 'student' && allStudentUsers.length > 1 && (
-            <div className="mb-5 p-3 bg-amber-50/60 rounded-2xl border border-amber-200/80">
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-[11px] font-bold text-amber-950">
-                  Chọn học sinh để kiểm tra tài khoản đã cấp:
-                </label>
-                <span className="text-[10px] text-amber-700 font-semibold">{allStudentUsers.length} học sinh</span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
-                {allStudentUsers.map((s) => {
-                  const isSelected = email.toLowerCase() === s.email.toLowerCase();
-                  return (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => {
-                        setEmail(s.email);
-                        setPassword(s.password || 'starkids2026');
-                        setError(null);
-                      }}
-                      className={`p-2 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
-                        isSelected
-                          ? 'bg-white border-amber-500 text-amber-950 font-bold shadow-xs ring-2 ring-amber-500/20'
-                          : 'bg-white/80 border-slate-200 text-slate-700 hover:bg-white'
-                      }`}
-                    >
-                      <img
-                        src={s.avatar}
-                        alt={s.name}
-                        className="w-7 h-7 rounded-lg object-cover ring-1 ring-slate-200 shrink-0"
-                        referrerPolicy="no-referrer"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold truncate leading-tight flex items-center gap-1">
-                          <span>{s.englishName || s.name}</span>
-                          <span className="text-[10px] text-slate-500 font-normal">({s.name})</span>
-                          {s.isAdmin && (
-                            <span title="Học sinh có quyền Admin">
-                              <Crown className="w-3 h-3 text-amber-500 shrink-0" />
-                            </span>
-                          )}
-                        </p>
-                        <p className="text-[10px] text-slate-500 truncate font-mono">{s.email}</p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Parent Selector */}
-          {selectedRole === 'parent' && parentAccountsList.length > 1 && (
-            <div className="mb-5 p-3 bg-purple-50/60 rounded-2xl border border-purple-200/80">
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-[11px] font-bold text-purple-950">
-                  Chọn phụ huynh để kiểm tra đăng nhập:
-                </label>
-                <span className="text-[10px] text-purple-700 font-semibold">{parentAccountsList.length} tài khoản</span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
-                {parentAccountsList.map((p) => {
-                  const isSelected =
-                    email.toLowerCase() === p.email.toLowerCase() ||
-                    (p.phone && email.replace(/\D/g, '') && p.phone.replace(/\D/g, '') === email.replace(/\D/g, ''));
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => {
-                        setEmail(p.email);
-                        setPassword(p.password || 'starkids2026');
-                        setError(null);
-                      }}
-                      className={`p-2 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
-                        isSelected
-                          ? 'bg-white border-purple-500 text-purple-950 font-bold shadow-xs ring-2 ring-purple-500/20'
-                          : 'bg-white/80 border-slate-200 text-slate-700 hover:bg-white'
-                      }`}
-                    >
-                      <img
-                        src={p.avatar}
-                        alt={p.name}
-                        className="w-7 h-7 rounded-lg object-cover ring-1 ring-slate-200 shrink-0"
-                        referrerPolicy="no-referrer"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold truncate leading-tight">{p.name}</p>
-                        <p className="text-[10px] text-slate-500 truncate font-mono">
-                          {p.phone ? `${p.phone} • ` : ''}{p.email}
-                        </p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
           {/* Standard Login Form */}
           <form onSubmit={handleFormSubmit} className="space-y-4">
@@ -616,13 +353,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full pl-9 pr-3 py-2.5 text-sm rounded-xl border border-slate-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 font-medium"
+                  className="block w-full pl-9 pr-3 py-2.5 text-sm rounded-xl border border-slate-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 font-medium placeholder:text-slate-400 placeholder:italic"
                   placeholder={
                     selectedRole === 'parent'
-                      ? 'Nhập email hoặc SĐT phụ huynh (VD: 0988 123 456)...'
+                      ? 'Nhập số điện thoại hoặc email phụ huynh (VD: 0988 123 456)...'
                       : selectedRole === 'student'
-                      ? 'Nhập email học sinh (VD: tommy.khoi@gmail.com)...'
-                      : 'Nhập email đăng nhập...'
+                      ? 'Nhập email hoặc tên tài khoản học sinh (VD: student@...)...'
+                      : selectedRole === 'teacher'
+                      ? 'Nhập email giáo viên (VD: teacher@starkids.edu.vn)...'
+                      : 'Nhập email quản trị viên (VD: admin@starkids.edu.vn)...'
                   }
                 />
               </div>
@@ -637,7 +376,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   href="#forgot"
                   onClick={(e) => {
                     e.preventDefault();
-                    alert('Vui lòng liên hệ Văn phòng StarKids hoặc Cô Emily để được cấp lại mật khẩu.');
+                    alert('Vui lòng liên hệ Ban Giám Hiệu hoặc bộ phận quản trị StarKids để được cấp lại mật khẩu.');
                   }}
                   className="text-xs text-amber-600 hover:text-amber-700 font-bold"
                 >
@@ -653,8 +392,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-9 pr-10 py-2.5 text-sm rounded-xl border border-slate-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 font-medium"
-                  placeholder="Nhập mật khẩu..."
+                  className="block w-full pl-9 pr-10 py-2.5 text-sm rounded-xl border border-slate-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 font-medium placeholder:text-slate-400 placeholder:italic"
+                  placeholder="Nhập mật khẩu tài khoản của bạn..."
                 />
                 <button
                   type="button"

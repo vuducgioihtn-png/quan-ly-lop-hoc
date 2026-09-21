@@ -73,19 +73,46 @@ export function saveUsers(users: User[]): void {
 }
 
 export function loadCurrentUserId(): string {
-  return getStoredItem(STORAGE_KEYS.CURRENT_USER_ID, 'teacher-1');
+  try {
+    const sessionVal = sessionStorage.getItem(STORAGE_KEYS.CURRENT_USER_ID);
+    if (sessionVal) return JSON.parse(sessionVal);
+  } catch (e) {}
+  return '';
 }
 
 export function saveCurrentUserId(id: string): void {
-  setStoredItem(STORAGE_KEYS.CURRENT_USER_ID, id);
+  try {
+    if (id) {
+      sessionStorage.setItem(STORAGE_KEYS.CURRENT_USER_ID, JSON.stringify(id));
+    } else {
+      sessionStorage.removeItem(STORAGE_KEYS.CURRENT_USER_ID);
+    }
+    localStorage.removeItem(STORAGE_KEYS.CURRENT_USER_ID);
+  } catch (e) {}
 }
 
 export function loadIsLoggedIn(): boolean {
-  return getStoredItem(STORAGE_KEYS.IS_LOGGED_IN, true);
+  try {
+    // Clear any previous persistent login state so visitors entering homepage link always see login first
+    localStorage.removeItem(STORAGE_KEYS.IS_LOGGED_IN);
+    const sessionVal = sessionStorage.getItem(STORAGE_KEYS.IS_LOGGED_IN);
+    if (sessionVal !== null) {
+      return JSON.parse(sessionVal) === true;
+    }
+  } catch (e) {}
+  return false;
 }
 
 export function saveIsLoggedIn(isLoggedIn: boolean): void {
-  setStoredItem(STORAGE_KEYS.IS_LOGGED_IN, isLoggedIn);
+  try {
+    if (isLoggedIn) {
+      sessionStorage.setItem(STORAGE_KEYS.IS_LOGGED_IN, JSON.stringify(true));
+    } else {
+      sessionStorage.removeItem(STORAGE_KEYS.IS_LOGGED_IN);
+      sessionStorage.removeItem(STORAGE_KEYS.CURRENT_USER_ID);
+    }
+    localStorage.removeItem(STORAGE_KEYS.IS_LOGGED_IN);
+  } catch (e) {}
 }
 
 export function loadClasses(): ClassRoom[] {
