@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   loadUsers,
   saveUsers,
@@ -22,10 +22,7 @@ import {
   loadMaterials,
   saveMaterials,
   loadNotifications,
-  saveNotifications,
-  fetchServerData,
-  syncDataToServer,
-  FullDatabasePayload
+  saveNotifications
 } from './utils/storage';
 import {
   User,
@@ -46,7 +43,6 @@ import { RegisterModal } from './components/RegisterModal';
 import { InteractiveHomeworkModal } from './components/InteractiveHomeworkModal';
 import { MaterialViewerModal } from './components/MaterialViewerModal';
 import { NotificationsModal } from './components/NotificationsModal';
-import { DatabaseSyncModal } from './components/DatabaseSyncModal';
 import { Sparkles, Heart, HelpCircle, ShieldCheck } from 'lucide-react';
 
 export default function App() {
@@ -64,11 +60,8 @@ export default function App() {
   // Modal States
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
-  const [isServerSynced, setIsServerSynced] = useState(false);
   const [activeHomeworkModal, setActiveHomeworkModal] = useState<Homework | null>(null);
   const [activeMaterialModal, setActiveMaterialModal] = useState<StudyMaterial | null>(null);
-  const isInitialMount = useRef(true);
 
   // Active Tabs for the 4 RBAC Roles
   const [adminTab, setAdminTab] = useState<'overview' | 'teachers' | 'approvals' | 'classes' | 'students'>('overview');
@@ -76,45 +69,9 @@ export default function App() {
   const [studentTab, setStudentTab] = useState<'homework' | 'rewards' | 'schedule' | 'materials' | 'attendance' | 'leaderboard'>('homework');
   const [parentTab, setParentTab] = useState<'analytics' | 'attendance' | 'homework' | 'tuition' | 'messages'>('analytics');
 
-  // Load from persistent server database (data/database.json) on startup for multi-browser sync
-  const handleReloadFromServer = async () => {
-    try {
-      const remote = await fetchServerData();
-      if (remote) {
-        if (remote.users && Array.isArray(remote.users) && remote.users.length > 0) setUsers(remote.users);
-        if (remote.classes && Array.isArray(remote.classes)) setClasses(remote.classes);
-        if (remote.attendance && Array.isArray(remote.attendance)) setAttendance(remote.attendance);
-        if (remote.homework && Array.isArray(remote.homework)) setHomework(remote.homework);
-        if (remote.submissions && Array.isArray(remote.submissions)) setSubmissions(remote.submissions);
-        if (remote.materials && Array.isArray(remote.materials)) setMaterials(remote.materials);
-        if (remote.notifications && Array.isArray(remote.notifications)) setNotifications(remote.notifications);
-        setIsServerSynced(true);
-      }
-    } catch (e) {
-      console.warn('Could not load remote database on mount:', e);
-    }
-  };
-
-  useEffect(() => {
-    handleReloadFromServer();
-  }, []);
-
-  const handleRestoreData = (restored: FullDatabasePayload) => {
-    if (restored.users && Array.isArray(restored.users)) setUsers(restored.users);
-    if (restored.classes && Array.isArray(restored.classes)) setClasses(restored.classes);
-    if (restored.attendance && Array.isArray(restored.attendance)) setAttendance(restored.attendance);
-    if (restored.homework && Array.isArray(restored.homework)) setHomework(restored.homework);
-    if (restored.submissions && Array.isArray(restored.submissions)) setSubmissions(restored.submissions);
-    if (restored.materials && Array.isArray(restored.materials)) setMaterials(restored.materials);
-    if (restored.notifications && Array.isArray(restored.notifications)) setNotifications(restored.notifications);
-  };
-
-  // Sync to localStorage & automatically sync to backend server database
+  // Sync to localStorage
   useEffect(() => {
     saveUsers(users);
-    if (!isInitialMount.current) {
-      syncDataToServer({ users, classes, attendance, homework, submissions, materials, notifications });
-    }
   }, [users]);
 
   useEffect(() => {
@@ -127,52 +84,27 @@ export default function App() {
 
   useEffect(() => {
     saveClasses(classes);
-    if (!isInitialMount.current) {
-      syncDataToServer({ users, classes, attendance, homework, submissions, materials, notifications });
-    }
   }, [classes]);
 
   useEffect(() => {
     saveAttendance(attendance);
-    if (!isInitialMount.current) {
-      syncDataToServer({ users, classes, attendance, homework, submissions, materials, notifications });
-    }
   }, [attendance]);
 
   useEffect(() => {
     saveHomework(homework);
-    if (!isInitialMount.current) {
-      syncDataToServer({ users, classes, attendance, homework, submissions, materials, notifications });
-    }
   }, [homework]);
 
   useEffect(() => {
     saveSubmissions(submissions);
-    if (!isInitialMount.current) {
-      syncDataToServer({ users, classes, attendance, homework, submissions, materials, notifications });
-    }
   }, [submissions]);
 
   useEffect(() => {
     saveMaterials(materials);
-    if (!isInitialMount.current) {
-      syncDataToServer({ users, classes, attendance, homework, submissions, materials, notifications });
-    }
   }, [materials]);
 
   useEffect(() => {
     saveNotifications(notifications);
-    if (!isInitialMount.current) {
-      syncDataToServer({ users, classes, attendance, homework, submissions, materials, notifications });
-    }
   }, [notifications]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      isInitialMount.current = false;
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, []);
 
   const [isAdminModeActive, setIsAdminModeActive] = useState<boolean>(false);
 
@@ -937,7 +869,6 @@ export default function App() {
         pendingSubmissionsCount={pendingSubmissionsCount}
         pendingHwCount={pendingHwCount}
         onToggleAdminView={handleToggleAdminView}
-        onOpenDatabaseSync={() => setIsSyncModalOpen(true)}
       />
 
       {/* Main App Content Body */}
@@ -952,8 +883,6 @@ export default function App() {
             submissions={submissions}
             activeTab={adminTab}
             onTabChange={setAdminTab}
-            isServerSynced={isServerSynced}
-            onOpenSyncModal={() => setIsSyncModalOpen(true)}
             onApproveStudent={handleApproveStudent}
             onBroadcastNotification={handleBroadcastNotification}
             onCreateClass={handleCreateClass}
@@ -1100,22 +1029,6 @@ export default function App() {
           setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
         }}
         onSendTestReminder={handleSendTestReminder}
-      />
-
-      {/* 5. Database Multi-Browser Sync & GitHub Backup Modal */}
-      <DatabaseSyncModal
-        isOpen={isSyncModalOpen}
-        onClose={() => setIsSyncModalOpen(false)}
-        users={users}
-        classes={classes}
-        attendance={attendance}
-        homework={homework}
-        submissions={submissions}
-        materials={materials}
-        notifications={notifications}
-        isServerSynced={isServerSynced}
-        onReloadFromServer={handleReloadFromServer}
-        onRestoreData={handleRestoreData}
       />
     </div>
   );

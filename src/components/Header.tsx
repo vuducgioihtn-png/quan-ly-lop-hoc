@@ -21,8 +21,7 @@ import {
   UserCheck,
   ChevronDown,
   Check,
-  Crown,
-  Server
+  Crown
 } from 'lucide-react';
 import { User, AppNotification } from '../types';
 
@@ -38,7 +37,6 @@ interface HeaderProps {
   pendingSubmissionsCount?: number;
   pendingHwCount?: number;
   onToggleAdminView?: () => void;
-  onOpenDatabaseSync?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -52,8 +50,7 @@ export const Header: React.FC<HeaderProps> = ({
   pendingCount,
   pendingSubmissionsCount = 0,
   pendingHwCount = 0,
-  onToggleAdminView,
-  onOpenDatabaseSync
+  onToggleAdminView
 }) => {
   const unreadCount = notifications.filter((n) => !n.read).length;
   const [isNavDropdownOpen, setIsNavDropdownOpen] = useState(false);
@@ -380,19 +377,6 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 <CreditCard className="w-3.5 h-3.5" />
                 <span>Học Phí</span>
-              </button>
-            )}
-
-            {/* Database Server & GitHub Sync (for admin and teacher) */}
-            {(currentUser.role === 'admin' || currentUser.role === 'teacher') && onOpenDatabaseSync && (
-              <button
-                type="button"
-                onClick={onOpenDatabaseSync}
-                className="relative p-2 text-slate-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-xl transition-all cursor-pointer group"
-                title="Đồng bộ dữ liệu đa trình duyệt & Sao lưu GitHub"
-              >
-                <Server className="w-5 h-5 text-slate-600 group-hover:text-indigo-600 transition-colors" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white animate-pulse" />
               </button>
             )}
 
