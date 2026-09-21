@@ -39,7 +39,11 @@ function writeDatabase(data: any) {
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  
+  // In development container with nginx, app must listen on 3000.
+  // In production (Cloud Run deployment), the app is standalone and must listen on process.env.PORT (typically 8080).
+  const isDevContainer = process.env.NODE_ENV === 'development' && Boolean(process.env.CONTROL_PLANE_PORT);
+  const PORT = isDevContainer ? 3000 : (Number(process.env.PORT) || 3000);
 
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -104,15 +108,18 @@ async function startServer() {
     }
   });
 
-  // Vite middleware for development
-  if (process.env.NODE_ENV !== 'production') {
+  const distPath = path.join(process.cwd(), 'dist');
+  const hasDist = fs.existsSync(path.join(distPath, 'index.html'));
+  const isProduction = process.env.NODE_ENV === 'production' || (!isDevContainer && hasDist);
+
+  // Vite middleware for development, static files for production
+  if (!isProduction) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
